@@ -106,11 +106,23 @@ If a PRP file was used for this work, remove it before committing. Only remove P
 5. PRPs are working documents — git history preserves them if ever needed.
 6. If no PRP is found, skip this step silently.
 
-### Step 7 — Execute Commit
+### Step 7 — Update README if Needed
 
-Run `SKIP_VALIDATE=1 git commit` with the generated message. The `SKIP_VALIDATE=1` prefix bypasses the pre-commit hook since validation already ran in Step 2. This single commit includes feature changes, the handoff, and the PRP removal. Record the commit hash for use in later steps.
+1. Read `README.md` and review the staged changes (`git diff --cached`).
+2. Check whether the changes in this commit affect any of:
+   - Setup or installation steps
+   - Architecture or component structure
+   - Public API surface or endpoints
+   - Tech stack (new dependencies, removed tools)
+   - Environment variables or configuration
+3. If any of those areas changed, update the relevant sections of `README.md` to reflect the current state and stage it.
+4. If nothing README-relevant changed, skip this step silently.
 
-### Step 8 — Push
+### Step 8 — Execute Commit
+
+Run `SKIP_VALIDATE=1 git commit` with the generated message. The `SKIP_VALIDATE=1` prefix bypasses the pre-commit hook since validation already ran in Step 2. This single commit includes feature changes, the handoff, the PRP removal, and any README updates. Record the commit hash for use in later steps.
+
+### Step 9 — Push
 
 Push the current branch to the remote:
 
@@ -119,7 +131,7 @@ Push the current branch to the remote:
 3. Otherwise, run `git push -u origin <branch>`.
 4. Report the push result.
 
-### Step 9 — Close Issue (conditional)
+### Step 10 — Close Issue (conditional)
 
 If a GitHub issue is associated with this work, handle closure based on the branch context:
 
@@ -127,18 +139,18 @@ If a GitHub issue is associated with this work, handle closure based on the bran
    a. `$ARGUMENTS` — if a number was passed (e.g., `/commit-close 4`), use that.
    b. The `Refs:` footer in the commit message (e.g., `Refs: #4` means issue 4).
    c. The current branch name — if it matches a pattern like `feat/issue-4-*` or `fix/4-description`, extract the number.
-2. **If on `main` or `master`** (direct push, no PR): run `gh issue close <number> --comment "Closed by commit <hash>"` where `<hash>` is the commit hash from Step 7.
-3. **If on a feature branch**: do NOT close the issue. Record the issue number — Step 10 will include `Closes #<number>` in the PR body, which auto-closes the issue when the PR merges.
+2. **If on `main` or `master`** (direct push, no PR): run `gh issue close <number> --comment "Closed by commit <hash>"` where `<hash>` is the commit hash from Step 8.
+3. **If on a feature branch**: do NOT close the issue. Record the issue number — Step 11 will include `Closes #<number>` in the PR body, which auto-closes the issue when the PR merges.
 4. If no issue number is detected, skip this step silently.
 
-### Step 10 — Create Pull Request
+### Step 11 — Create Pull Request
 
 If the current branch is not `main` or `master`, create a pull request:
 
 1. **Generate the PR title** from the conventional commit subject line used in Step 3 (e.g., `feat(commands): enhance plan-feature and commit-close workflows`).
 2. **Generate the PR body** with:
    - A `## Summary` section listing commits on this branch: `git log main..HEAD --pretty=format:"- %s"`
-   - A `Closes #<issue-number>` line if an issue number was detected in Step 9
+   - A `Closes #<issue-number>` line if an issue number was detected in Step 10
 3. **Create the PR**:
    ```
    gh pr create --title "<title>" --body "<body>" --delete-branch

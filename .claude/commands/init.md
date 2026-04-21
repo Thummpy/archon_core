@@ -216,19 +216,53 @@ Run the init validator:
 
 If any checks fail, fix the unresolved placeholders and re-run until all checks pass.
 
-### Step 6 — Clean Up
+### Step 6 — Bootstrap
 
-After validation passes:
+Run `/bootstrap` now. This plans infrastructure and initial development tasks, then creates GitHub Issues with labels, phased milestones, and dependency ordering.
 
-1. Warn the user to delete `INIT_INSTRUCTIONS.md`
-2. Tell the user: "Run `/bootstrap` to create initial GitHub Issues and plan your first development tasks."
+**Prerequisite:** The `gh` CLI must be installed and authenticated (`gh auth status`). If not available, warn the user and skip to Step 7.
 
-### Step 7 — Report
+### Step 7 — Audit Seed and Rewrite README
+
+Review `.claude/project_seed.md` one final time against every file populated in Step 3. Identify any residual information that has not been placed — informative context, explanations, workflow guidance, background, constraints, or any other content that doesn't map to a specific template placeholder but is still valuable.
+
+Then rewrite `README.md` as the project's README (the template README was already replaced in Step 3m). Ensure it includes:
+
+- **Project name** as H1
+- **Description** from Project Identity
+- **Tech Stack** summary
+- **Getting Started** — link to `.claude/docs/setup.md`
+- **Architecture** — brief overview with link to `.claude/docs/architecture.md`
+- **Any residual seed content** — fold in context, background, or guidance that didn't land elsewhere
+- **Workflow** section at the bottom — list each development command with a one-line explanation:
+  - `/research` — iterative pre-plan research to resolve unknowns
+  - `/plan-feature` — research codebase and generate an implementation plan
+  - `/execute` — implement the plan step-by-step with validation
+  - `/review` — self-review changes against standards
+  - `/commit-close` — validate, commit, push, create PR, and close issue
+  - `/handoff` — save session state when context is heavy but task is not done
+  - `/compact` — compress context for long-running sessions
+- **Team** table from Project Identity
+
+### Step 8 — Delete Seed
+
+At this point all information from the seed has been disseminated. Delete `.claude/project_seed.md`.
+
+```bash
+rm .claude/project_seed.md
+```
+
+### Step 9 — Report
 
 Summarize what was done:
 
 1. Number of files populated
 2. Any sections where you derived content (not directly from seed) — list what you derived and from what
 3. Any sections where you wrote null statements — list them
-4. Any warnings or issues discovered during population
-5. Recommended next step: `/bootstrap`
+4. Any residual seed content folded into README
+5. Any warnings or issues discovered during population
+6. Number of GitHub Issues created by bootstrap
+
+### Step 10 — Commit
+
+Run `/commit-close --skip-validate` to commit the fully initialized project.
