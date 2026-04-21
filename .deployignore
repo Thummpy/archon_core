@@ -1,0 +1,49 @@
+# Deployment Exclusion List
+# ========================
+# The canonical list of files/directories that are framework scaffolding
+# and must NEVER be included in deployment artifacts.
+#
+# Syntax: .gitignore conventions (one pattern per line, # for comments).
+#
+# Usage:
+#   rsync --exclude-from=.deployignore ./ _deploy/
+#   Custom scripts can parse this file to filter deployable content.
+#
+# For Docker deployments, .dockerignore mirrors this file and is consumed
+# natively by Docker during image builds.
+
+# AI development framework
+.claude/
+
+# GitHub configuration (workflows, CODEOWNERS, PR template)
+.github/
+
+# Git and deployment meta files
+.gitignore
+.deployignore
+.dockerignore
+
+# Template and project documentation
+README.md
+INIT_INSTRUCTIONS.md
+LICENSE
+
+# Legacy and reference directories
+CLAUDE_AI_INIT_PROJECT/
+references/
+
+# IDE and editor files (belt-and-suspenders — also in .gitignore)
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Project-specific exclusions
+# Add lines below for files that exist in the repo but should not be deployed.
+# Examples:
+#   tests/
+#   docs/
+#   Makefile
+#   *.md
+#   scripts/

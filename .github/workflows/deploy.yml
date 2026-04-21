@@ -1,0 +1,68 @@
+# Deployment workflow stub
+# =======================
+# This is a minimal starting point, NOT a prescriptive pipeline.
+# The only real logic is the artifact-prep step that uses .deployignore
+# to produce a clean deployment artifact without framework scaffolding.
+#
+# For non-standard targets (Databricks, managed data pipelines, etc.),
+# replace this workflow entirely. The .deployignore file is the safety
+# net — this workflow is just one way to consume it.
+#
+# Replace {{PLACEHOLDER}} values during project initialization.
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+# Prevent concurrent deploys
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # --- Replace with your language/runtime setup ---
+      # - name: Set up runtime
+      #   uses: {{LANGUAGE_SETUP}}
+      #   with:
+      #     {{LANGUAGE_VERSION_KEY}}: '{{LANGUAGE_VERSION}}'
+      # ------------------------------------------------
+
+      # --- Replace with your install + build commands ---
+      # - name: Install dependencies
+      #   run: {{INSTALL_COMMAND}}
+      #
+      # - name: Build
+      #   run: {{BUILD_COMMAND}}
+      # --------------------------------------------------
+
+      - name: Prepare deployment artifact
+        run: |
+          mkdir -p _deploy
+          rsync -av --exclude-from=.deployignore ./ _deploy/
+          echo "::group::Deployment artifact contents"
+          find _deploy -maxdepth 3 -type f | sort
+          echo "::endgroup::"
+
+      # --- Replace with your deployment steps ---
+      # - name: Deploy
+      #   run: {{DEPLOY_COMMAND}}
+      #   env:
+      #     {{DEPLOY_ENV_VARS}}
+      # -------------------------------------------
+
+      - name: Summary
+        run: |
+          echo "## Deploy" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status:** Stub — replace placeholder steps" >> $GITHUB_STEP_SUMMARY

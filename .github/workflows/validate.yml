@@ -1,0 +1,41 @@
+# CI validation workflow
+# Replace {{LANGUAGE_SETUP}} and {{INSTALL_COMMAND}} during project initialization.
+#
+# Examples:
+#   Python:  LANGUAGE_SETUP = actions/setup-python@v5 with python-version: '3.12'
+#            INSTALL_COMMAND = pip install -r requirements.txt
+#   Node:    LANGUAGE_SETUP = actions/setup-node@v4 with node-version: '20'
+#            INSTALL_COMMAND = npm ci
+#   Java:    LANGUAGE_SETUP = actions/setup-java@v4 with java-version: '21'
+#            INSTALL_COMMAND = mvn dependency:resolve
+#   Go:      LANGUAGE_SETUP = actions/setup-go@v5 with go-version: '1.22'
+#            INSTALL_COMMAND = go mod download
+
+name: Validate
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # --- Replace this block with your language setup ---
+      # - name: Set up runtime
+      #   uses: {{LANGUAGE_SETUP}}
+      #   with:
+      #     {{LANGUAGE_VERSION_KEY}}: '{{LANGUAGE_VERSION}}'
+      # ---------------------------------------------------
+
+      # --- Replace this with your install command ---
+      # - name: Install dependencies
+      #   run: {{INSTALL_COMMAND}}
+      # ----------------------------------------------
+
+      - name: Run validation
+        run: .claude/scripts/validate.sh

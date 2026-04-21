@@ -1,0 +1,41 @@
+# Docker Build Exclusion List
+# ===========================
+# Mirrors .deployignore — the canonical exclusion list for this project.
+# Docker respects this file natively during COPY and build context assembly.
+# If you update exclusions, update .deployignore as well to keep them in sync.
+
+# AI development framework
+.claude/
+
+# GitHub configuration
+.github/
+
+# Git and deployment meta files
+.git/
+.gitignore
+.deployignore
+.dockerignore
+
+# Template and project documentation
+README.md
+INIT_INSTRUCTIONS.md
+LICENSE
+
+# Legacy and reference directories
+CLAUDE_AI_INIT_PROJECT/
+references/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Project-specific exclusions
+# Add lines below for files that exist in the repo but should not be in the image.
+# Examples:
+#   tests/
+#   docs/
+#   Makefile
+#   *.md
