@@ -7,8 +7,8 @@ archon-setup is a wrapper repository that provides Docker-based deployment and m
 ```mermaid
 graph TD
     U[User] -->|CLI / Web UI / vscode-archon| A[Archon Container]
-    A -->|reads| W[".archon/workflows/ (repo, :ro)"]
-    A -->|reads| C[".archon/commands/ (repo, :ro)"]
+    A -->|reads/writes| W[".archon/workflows/ (repo, rw)"]
+    A -->|reads/writes| C[".archon/commands/ (repo, rw)"]
     A -->|reads/writes| D["~/archon-data/ (host path)"]
     D -->|contains| DB["archon.db (SQLite)"]
     D -->|contains| WS["workspaces/ (git clones, worktrees)"]
