@@ -31,6 +31,10 @@ If `$ARGUMENTS` is a number (a GitHub issue number), create or checkout a featur
       ```
       git checkout -b feat/issue-$ARGUMENTS-<slug>
       ```
+   d. Push to remote with tracking so the branch exists on both local and remote:
+      ```
+      git push -u origin feat/issue-$ARGUMENTS-<slug>
+      ```
 5. If `$ARGUMENTS` is not a number (e.g., a feature name string), skip this step entirely and proceed to Step 1. The developer is responsible for branch management in this case.
 
 ### Step 1 — Gather Context

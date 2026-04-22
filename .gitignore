@@ -118,3 +118,9 @@ junit*.xml
 # ============================================================================
 references/
 CLAUDE_AI_INIT_PROJECT/
+
+# ============================================================================
+# Project-specific
+# ============================================================================
+# Timestamped SQLite backups created by scripts/backup.sh and scripts/upgrade.sh
+backups/
