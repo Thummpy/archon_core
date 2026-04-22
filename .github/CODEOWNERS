@@ -1,13 +1,8 @@
 # Framework governance — restrict who can modify AI coding framework files
 #
-# Replace {{TEAM_LEAD_HANDLE}} with the GitHub handle(s) of the team lead(s)
-# who should review changes to framework configuration.
-#
-# Example: @janedoe or @myorg/framework-owners
-#
 # These rules ensure that modifications to the AI development framework —
 # coding standards, slash commands, example patterns, and PRP templates —
 # are reviewed by designated owners before merging.
 
 # All AI framework files live under .claude/
-.claude/                      {{TEAM_LEAD_HANDLE}}
+.claude/                      @Thummpy

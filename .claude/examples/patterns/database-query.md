@@ -1,75 +1,85 @@
-# Delta Lake / Spark Query Patterns
+# SQLite Data Management Patterns
 
-This project uses Delta Lake on `hive_metastore` via PySpark — not a traditional RDBMS with an ORM. This pattern file documents safe, efficient data access patterns for the Databricks + Delta Lake stack.
+This project does not perform direct database queries — SQLite is managed entirely by Archon inside the container. This pattern file documents safe patterns for inspecting, backing up, and restoring the Archon database from the host.
 
-## Parameterized Queries
+## Inspecting the Database
 
-When using Spark SQL strings, always use parameterized queries to prevent injection.
+The SQLite database lives at `~/archon-data/archon.db`. It can be inspected with standard tools while Archon is running (read-only queries are safe):
 
-### PySpark DataFrame API (preferred)
+```bash
+# List tables
+sqlite3 ~/archon-data/archon.db ".tables"
 
-```python
-# Good — DataFrame API (no SQL injection risk)
-result = spark.table("catalog.raw.train").filter(
-    (col("Pclass") == 1) & (col("Survived") == 1)
-)
+# Check row counts
+sqlite3 ~/archon-data/archon.db "SELECT name, (SELECT COUNT(*) FROM pragma_table_info(name)) as columns FROM sqlite_master WHERE type='table';"
 
-# Good — parameterized SQL
-spark.sql(
-    "SELECT * FROM catalog.raw.train WHERE Pclass = :pclass",
-    args={"pclass": 1},
-)
-
-# Bad — string interpolation (SQL injection risk)
-spark.sql(f"SELECT * FROM catalog.raw.train WHERE Pclass = {user_input}")
+# Export a table to CSV
+sqlite3 -header -csv ~/archon-data/archon.db "SELECT * FROM workflows;" > workflows.csv
 ```
 
-## Transaction Boundaries
+## Backup Pattern
 
-Delta Lake provides ACID transactions at the table level. Use `overwrite` mode for idempotent pipeline stages.
+Backups use timestamped filenames in the `backups/` directory (`.gitignore`'d):
 
-```python
-# Idempotent write — safe to rerun
-df.write.format("delta").mode("overwrite").saveAsTable("catalog.features.train")
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-# Incremental merge — for append-style updates
-from delta.tables import DeltaTable
-target = DeltaTable.forName(spark, "catalog.tracking.submissions")
-target.alias("t").merge(
-    new_submissions.alias("s"),
-    "t.run_id = s.run_id"
-).whenNotMatchedInsertAll().execute()
+ARCHON_DATA="${ARCHON_DATA:-$HOME/archon-data}"
+TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+DEST="backups/archon-${TIMESTAMP}.db"
+
+mkdir -p backups
+cp "${ARCHON_DATA}/archon.db" "${DEST}"
+echo "✓ Backup: ${DEST}"
 ```
 
-## Connection Pooling
+## Restore Pattern
 
-```python
-# Always use the active session — never create new SparkSessions
-from pyspark.sql import SparkSession
-spark = SparkSession.getActiveSession()
-if spark is None:
-    spark = SparkSession.builder.getOrCreate()
+Restoring requires stopping Archon first — SQLite does not handle concurrent writers:
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+BACKUP_FILE="$1"
+ARCHON_DATA="${ARCHON_DATA:-$HOME/archon-data}"
+
+if [ -z "${BACKUP_FILE}" ]; then
+  echo "Usage: restore.sh <backup-file>"
+  echo "Available backups:"
+  ls -1 backups/archon-*.db 2>/dev/null || echo "  (none)"
+  exit 1
+fi
+
+echo "→ Stopping Archon..."
+docker compose down
+
+echo "→ Restoring ${BACKUP_FILE}..."
+cp "${BACKUP_FILE}" "${ARCHON_DATA}/archon.db"
+
+echo "→ Starting Archon..."
+docker compose up -d
+
+echo "✓ Restored from ${BACKUP_FILE}"
 ```
 
-## N+1 Query Avoidance
+## Cross-Machine Sync Safety
 
-```python
-# Bad — reading table multiple times for different filters
-pclass_1 = spark.table("catalog.raw.train").filter(col("Pclass") == 1)
-pclass_2 = spark.table("catalog.raw.train").filter(col("Pclass") == 2)
-pclass_3 = spark.table("catalog.raw.train").filter(col("Pclass") == 3)
+SQLite does not handle concurrent writes. Always stop Archon before syncing:
 
-# Single read, then filter or group
-train = spark.table("catalog.raw.train").cache()
-stats_by_class = train.groupBy("Pclass").agg(
-    avg("Age").alias("avg_age"),
-    sum("Survived").alias("survived_count"),
-)
+```bash
+# CORRECT — stop first, then sync
+docker compose down
+rclone sync ~/archon-data/ gdrive:archon-data/
+docker compose up -d
+
+# WRONG — syncing while Archon is running risks database corruption
+rclone sync ~/archon-data/ gdrive:archon-data/  # BAD: Archon may be writing
 ```
 
 ## Rationale
 
-- **DataFrame API over raw SQL** reduces injection risk and enables Spark's catalyst optimizer.
-- **Overwrite mode** ensures pipeline stages are idempotent — safe to rerun without data corruption.
-- **Single SparkSession** avoids resource conflicts in the Databricks runtime.
-- **Caching and grouping** prevents redundant reads of the same Delta table.
+- **Host-path volume** makes the database a regular file — inspectable, copyable, syncable.
+- **Timestamp naming** for backups prevents overwriting and provides a clear history.
+- **Stop-before-sync** is a hard constraint because SQLite uses file-level locking. The sync scripts enforce this.

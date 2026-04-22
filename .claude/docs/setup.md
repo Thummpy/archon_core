@@ -1,53 +1,66 @@
 # Setup
 
-<!-- This file is populated during project initialization.
-     Replace each {{PLACEHOLDER}} with project-specific content.
-     Delete these HTML comments after initialization. -->
-
 ## Prerequisites
 
-<!-- List required software, runtimes, and access:
-     - Language runtimes and versions (e.g., Node 20+, Python 3.11+, Java 21)
-     - Package managers (e.g., npm, uv, maven)
-     - Infrastructure tools (e.g., Docker, Terraform, AWS CLI)
-     - Access requirements (e.g., VPN, SSO, repository permissions) -->
+- **Docker Desktop** (Mac/Windows) or **Docker Engine + Docker Compose v2** (Linux)
+- **A Claude Pro/Max/Team/Enterprise subscription** — needed for OAuth token generation
+- **A web browser** — for the one-time OAuth login flow
+- **Git** — to clone the repository and share workflow updates
 
-{{PREREQUISITES}}
+Optional tools (installed as needed):
+
+- **`rclone`** — only needed for cross-machine data sync (Phase 2)
+- **`gh` CLI** — only needed for workflows that interact with GitHub issues/PRs
 
 ## Clone & Install
 
-<!-- Provide the exact commands to clone the repo and install dependencies.
-     Include any post-install steps (e.g., git hooks, build tools). -->
-
 ```bash
-{{CLONE_AND_INSTALL_COMMANDS}}
+git clone git@github.com:atyeti-inc/archon-setup.git
+cd archon-setup
+cp .env.example .env
+./scripts/setup-oauth.sh    # Installs claude CLI if needed, runs setup-token, writes to .env
+mkdir -p ~/archon-data       # Create host data directory
+docker compose pull
+docker compose up -d
 ```
 
 ## Environment Configuration
 
-<!-- List all required environment variables and config files.
-     Do NOT include actual secrets — only names, descriptions, and where to obtain values.
-     Reference .env.example if one exists. -->
+All configuration lives in the `.env` file. Copy `.env.example` to `.env` and fill in the values:
 
-{{ENVIRONMENT_CONFIGURATION}}
+| Variable | Description | How to Obtain |
+|----------|-------------|---------------|
+| `CLAUDE_CODE_OAUTH_TOKEN` | OAuth token for Anthropic API authentication | Run `./scripts/setup-oauth.sh` — it handles installation and token generation |
+| `PORT` | Archon app port (default: `3000`) | Set manually if port 3000 is in use |
+| `RCLONE_REMOTE` | rclone remote name for sync scripts (default: `gdrive:archon-data`) | Configure with `rclone config` when setting up cross-machine sync |
+| `DATABASE_URL` | PostgreSQL connection string | Only needed with `--profile with-db`. Omit for default SQLite. |
+
+The `.env` file is `.gitignore`'d and must never be committed — it contains your OAuth token.
 
 ## Local Development
 
-<!-- How to run the project locally:
-     - Start command(s)
-     - Default ports and URLs
-     - Hot reload behavior
-     - Common development workflows -->
-
 ```bash
-{{LOCAL_DEV_COMMANDS}}
+# Start Archon
+docker compose up -d
+
+# Access Web UI at http://localhost:3000
+
+# View logs
+docker compose logs -f app
+
+# Restart after pulling new workflows
+git pull && docker compose restart app
+
+# Stop Archon
+docker compose down
+
+# Start with optional PostgreSQL
+docker compose --profile with-db up -d
 ```
 
 ## Verify Setup
 
-<!-- Smoke test commands to confirm everything is working.
-     These should pass immediately after a fresh setup. -->
-
 ```bash
-{{VERIFY_SETUP_COMMANDS}}
+./scripts/health.sh
+# Expected output: "archon-app: healthy | Archon API: OK | Workflows loaded: N"
 ```

@@ -1,10 +1,6 @@
-# {{PROJECT_NAME}}
+# archon-setup
 
-<!-- Replace {{PROJECT_NAME}} with the actual project name during initialization. -->
-
-{{PROJECT_DESCRIPTION}}
-
-<!-- Replace {{PROJECT_DESCRIPTION}} with a 1-2 sentence summary of what this project does. -->
+Wrapper repository for a version-pinned local Archon installation with custom workflows, OAuth authentication, portable data via host-path volumes, and team-friendly documentation for developers with minimal Docker experience.
 
 ## Read These First
 
@@ -16,16 +12,45 @@ Before starting any work:
 
 ## Tech Stack
 
-<!-- Replace {{TECH_STACK}} with the project's languages, frameworks, databases, and infrastructure. -->
-
-{{TECH_STACK}}
+- **Language:** Bash (scripts), YAML (Docker Compose, workflow definitions), Markdown (command files, documentation)
+- **Framework:** Docker Compose v2 (container orchestration)
+- **Database:** SQLite (Archon's default, zero config, stored at `~/archon-data/archon.db`)
+- **Infrastructure:** Docker, Docker Compose — local only
+- **Tools:** `claude` CLI (OAuth token generation), `rclone` (cross-machine sync), `gh` CLI (optional, GitHub integration), `jq` (optional, JSON processing)
 
 ## Project Structure
 
-<!-- Replace {{PROJECT_STRUCTURE}} with the actual directory layout after initialization. -->
-
 ```
-{{PROJECT_STRUCTURE}}
+archon-setup/
+├── docker-compose.yml          # Pinned Archon image, host-path volume, optional Postgres profile
+├── .env.example                # Template: CLAUDE_CODE_OAUTH_TOKEN, PORT, RCLONE_REMOTE
+├── .archon/
+│   ├── config.yaml             # Archon configuration overrides
+│   ├── workflows/              # Custom workflow YAML files (shared via git)
+│   │   ├── atyeti-pev.yaml     # Standard Plan-Execute-Validate workflow
+│   │   └── ...
+│   └── commands/               # Custom command Markdown files (shared via git)
+│       ├── plan.md
+│       ├── execute.md
+│       ├── review.md
+│       └── ...
+├── scripts/
+│   ├── setup-oauth.sh          # Install claude CLI if needed, run setup-token, write to .env
+│   ├── sync-up.sh              # docker compose down → rclone sync ~/archon-data → remote
+│   ├── sync-down.sh            # rclone sync remote → ~/archon-data → docker compose up
+│   ├── upgrade.sh              # Backup DB → bump tag → pull → restart → validate health
+│   ├── backup.sh               # Copy ~/archon-data/archon.db to backups/ with timestamp
+│   └── health.sh               # Check container status + /api/health endpoint
+├── backups/                    # .gitignore'd — timestamped SQLite backups
+├── docs/
+│   ├── SETUP.md                # Step-by-step first-time setup (Docker install → running Archon)
+│   ├── DAILY-USE.md            # Running workflows, checking status, using Web UI
+│   ├── SHARING-WORKFLOWS.md    # git pull → docker compose restart to get new workflows
+│   ├── SYNC-BETWEEN-MACHINES.md # rclone setup, sync-up, sync-down, gotchas
+│   ├── UPGRADING.md            # Version bump procedure with backup safety
+│   └── TROUBLESHOOTING.md      # Common errors and fixes
+├── .gitignore                  # .env, backups/
+└── README.md                   # Quick-start pointing to docs/SETUP.md
 ```
 
 ## DLC
@@ -135,24 +160,23 @@ After completing any task:
 
 ## Workflow
 
-<!-- Replace {{WORKFLOW}} with the team's issue tracking and branching workflow.
-     Examples: GitHub Issues, Jira, Linear; branch naming; how to reference tickets in commits;
-     how to move issues through statuses (in progress, review, done). -->
-
-{{WORKFLOW}}
+GitHub Issues with labels: `ops`, `workflow`, `docs`, `upgrade`. GitHub Flow: feature branches off `main`, PR required, squash merge.
 
 ## Naming Conventions
 
-<!-- Replace {{NAMING_CONVENTIONS}} with project-specific naming rules for files, classes,
-     functions, constants, and variables. These are language/framework dependent.
-     Examples: snake_case for Python files, PascalCase for React components. -->
-
-{{NAMING_CONVENTIONS}}
+- **Script files:** lowercase-with-hyphens (e.g., `setup-oauth.sh`, `sync-up.sh`)
+- **Shell functions:** `lower_snake_case` (e.g., `check_docker`, `run_backup`)
+- **Shell variables (local):** `lower_snake_case`
+- **Environment variables / constants:** `UPPER_SNAKE_CASE` (e.g., `CLAUDE_CODE_OAUTH_TOKEN`, `RCLONE_REMOTE`)
+- **YAML files:** lowercase-with-hyphens (e.g., `atyeti-pev.yaml`, `docker-compose.yml`)
+- **Markdown doc files:** `UPPER-CASE.md` for top-level guides (e.g., `SETUP.md`, `DAILY-USE.md`)
+- **Docker Compose services:** lowercase-with-hyphens (e.g., `archon-app`, `archon-postgres`)
+- **Directories:** lowercase-with-hyphens (e.g., `archon-data`, `archon-setup`)
 
 ## Project-Specific Conventions
 
-<!-- Replace {{PROJECT_CONVENTIONS}} with any additional project-specific patterns,
-     architectural rules, or standards not covered by the sections above.
-     Examples: API versioning strategy, state management approach, data access patterns. -->
-
-{{PROJECT_CONVENTIONS}}
+- **Version pin is the source of truth.** The GHCR image tag in `docker-compose.yml` is the single definition of which Archon version is running. Never use `latest` or track a branch.
+- **Custom workflows override by filename.** A file in `.archon/workflows/` with the same name as an Archon default replaces it. Use distinct names for additive workflows.
+- **All scripts are idempotent and narrate.** Every script prints what it's about to do before doing it, handles "already done" gracefully, and exits non-zero on failure with a human-readable message.
+- **Docs assume zero Docker knowledge.** Every doc explains what each command does and why, not just what to type. Include "what you should see" after each step.
+- **Workflow YAML files must include a `description:` field** at the top level for discoverability by Archon's skill system and the vscode-archon extension.

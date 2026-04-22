@@ -34,8 +34,11 @@ paths:
 
 ## Naming & Tagging
 
-<!-- Replace {{INFRA_CONVENTIONS}} with project-specific infrastructure conventions:
-     cloud provider, resource naming patterns, required tags (owner, environment, cost-center),
-     network topology, security requirements. -->
-
-{{INFRA_CONVENTIONS}}
+- Container name: `archon-app` (and `archon-postgres` if using `with-db` profile)
+- Network: `archon-network` (bridge)
+- Host-path volume: `~/archon-data` → `/.archon` in container
+- Postgres volume (optional profile only): `archon_postgres_data` (named volume)
+- Archon port: `127.0.0.1:3000:3000` (localhost only)
+- All containers use `restart: unless-stopped`
+- DNS override: `dns: [8.8.8.8, 8.8.4.4]` on app container (required for external API calls from within container)
+- Backup files: `backups/archon-YYYYMMDD-HHMMSS.db`

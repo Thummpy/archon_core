@@ -1,86 +1,103 @@
-# API Endpoint Structure
+# Bash Script Structure
 
-Demonstrates the standard request-handling flow: validate → authenticate → execute → respond → handle errors.
-
-This file is a `[PLACEHOLDER]`. Replace `{{FRAMEWORK}}` markers with your project's actual framework during initialization.
+This project has no API endpoints — it is a Docker wrapper repo. This pattern file documents the standard structure for operational Bash scripts, which are the primary "handlers" in this project.
 
 ## Generic Flow
 
-Every endpoint follows this sequence:
+Every script follows this sequence:
 
-1. **Validate input** — reject malformed requests before any business logic runs
-2. **Check authorization** — verify the caller has permission for this operation
-3. **Execute business logic** — call domain services, not raw data access
-4. **Format response** — return a consistent response envelope
-5. **Handle errors** — catch and translate exceptions to appropriate HTTP status codes
+1. **Check prerequisites** — verify required tools are installed (docker, rclone, etc.)
+2. **Validate input** — check arguments and environment variables
+3. **Narrate intent** — print what the script is about to do before doing it
+4. **Execute operation** — perform the action (idempotently where possible)
+5. **Handle errors** — exit non-zero with a human-readable message on failure
 
-## Endpoint Template
+## Script Template
 
-### {{FRAMEWORK}} — Replace with your framework (FastAPI, Express, Spring Boot, etc.)
+### Bash — Operational Script
 
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+# ---------------------------------------------------------------------------
+# Prerequisites
+# ---------------------------------------------------------------------------
+require_tool() {
+  if ! command -v "$1" &> /dev/null; then
+    echo "ERROR: $1 is not installed."
+    echo "  Install: $2"
+    exit 1
+  fi
+}
+
+require_tool "docker" "https://docs.docker.com/get-docker/"
+
+# ---------------------------------------------------------------------------
+# Configuration
+# ---------------------------------------------------------------------------
+ARCHON_DATA="${ARCHON_DATA:-$HOME/archon-data}"
+BACKUP_DIR="./backups"
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+echo "→ Checking Archon container status..."
+
+if ! docker compose ps --format json | jq -e '.[] | select(.Name == "archon-app")' > /dev/null 2>&1; then
+  echo "ERROR: archon-app container is not running."
+  echo "  Run: docker compose up -d"
+  exit 1
+fi
+
+echo "✓ Archon is running."
 ```
-{{FRAMEWORK_SPECIFIC}}
-# Replace this block with a complete endpoint example in your framework.
-# It should demonstrate:
-#   - Request validation (path params, query params, body)
-#   - Auth/permission check
-#   - Service call (not direct DB access)
-#   - Structured JSON response with consistent envelope
-#   - Error handling returning appropriate status codes
-#
-# Example frameworks:
-#   FastAPI:     @app.post("/items") with Pydantic models
-#   Express:     router.post("/items", validate, authorize, handler)
-#   Spring Boot: @PostMapping with @Valid and ResponseEntity
-#   Go net/http:  handler with middleware chain
-```
 
-## Response Envelope
+## Error Handling
 
-All endpoints return a consistent shape:
+All scripts use `set -euo pipefail` and provide context on failure:
 
-```json
-{
-  "data": { },
-  "error": null,
-  "meta": {
-    "request_id": "abc-123",
-    "timestamp": "2025-01-15T10:30:00Z"
-  }
+```bash
+set -euo pipefail
+
+backup_database() {
+  local timestamp
+  timestamp=$(date +%Y%m%d-%H%M%S)
+  local dest="backups/archon-${timestamp}.db"
+
+  echo "→ Backing up database to ${dest}..."
+
+  if [ ! -f "${ARCHON_DATA}/archon.db" ]; then
+    echo "ERROR: Database not found at ${ARCHON_DATA}/archon.db"
+    echo "  Has Archon been started at least once?"
+    exit 1
+  fi
+
+  mkdir -p backups
+  cp "${ARCHON_DATA}/archon.db" "${dest}"
+  echo "✓ Backup complete: ${dest}"
 }
 ```
 
-On error:
+## Idempotency Pattern
 
-```json
-{
-  "data": null,
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "Field 'email' is required"
-  },
-  "meta": {
-    "request_id": "abc-123",
-    "timestamp": "2025-01-15T10:30:00Z"
-  }
+Scripts handle "already done" gracefully:
+
+```bash
+ensure_data_dir() {
+  if [ -d "${ARCHON_DATA}" ]; then
+    echo "⊘ Data directory already exists: ${ARCHON_DATA}"
+    return
+  fi
+
+  echo "→ Creating data directory: ${ARCHON_DATA}"
+  mkdir -p "${ARCHON_DATA}"
+  echo "✓ Created ${ARCHON_DATA}"
 }
-```
-
-## Input Validation
-
-Validate at the handler boundary. Business logic should receive pre-validated data.
-
-```
-{{FRAMEWORK_SPECIFIC}}
-# Replace with your framework's validation approach:
-#   FastAPI:     Pydantic model as parameter type
-#   Express:     Joi/Zod schema in validation middleware
-#   Spring Boot: @Valid annotation with Jakarta Bean Validation
-#   Go:          validator library or manual checks in handler
 ```
 
 ## Rationale
 
-- **Validate-first** prevents invalid data from reaching business logic, reducing the surface area for bugs.
-- **Consistent response envelope** lets API consumers write generic parsing code instead of per-endpoint handling.
-- **Service-layer calls** (not direct DB access) keep endpoints thin and business logic testable in isolation.
+- **Prerequisite checks** prevent cryptic errors when tools are missing — the target audience may not know to install them.
+- **Narration** (`echo "→ ..."`) makes scripts self-documenting for users unfamiliar with shell scripting.
+- **Idempotency** means scripts are safe to re-run without side effects, which matches the beginner-friendly philosophy.

@@ -3,13 +3,12 @@
 # Project Validation Script
 # =============================================================================
 # Runs the full validation suite: lint, type check, unit tests, integration
-# tests, and build. Replace each {{COMMAND}} placeholder with the actual
-# command for your tech stack during project initialization.
+# tests, and build.
 #
 # Usage: ./.claude/scripts/validate.sh [--skip-integration]
 #
 # Graceful null-case handling:
-#   - Steps with unresolved {{PLACEHOLDER}} commands are skipped automatically.
+#   - Steps with unresolved placeholder commands are skipped automatically.
 #   - Steps whose target directories do not yet exist are skipped automatically.
 #   This allows the script to run safely on freshly initialized projects that
 #   have no source code or tests yet.
@@ -62,7 +61,7 @@ run_step() {
   local cmd="$2"
 
   # Skip steps that still have unresolved placeholder commands
-  if echo "$cmd" | grep -q '{{.*}}'; then
+  if echo "$cmd" | grep -q '[{][{].*[}][}]'; then
     echo "⊘ $name skipped (placeholder command not yet configured)"
     SKIPPED=$((SKIPPED + 1))
     return
@@ -86,7 +85,7 @@ run_step_if() {
   local cmd="$3"
 
   # Skip if path is still a placeholder
-  if echo "$path" | grep -q '{{.*}}'; then
+  if echo "$path" | grep -q '[{][{].*[}][}]'; then
     echo "⊘ $name skipped (target directory placeholder not yet configured)"
     SKIPPED=$((SKIPPED + 1))
     return
@@ -112,43 +111,21 @@ skip_step() {
 # ---------------------------------------------------------------------------
 section "Lint"
 
-# Replace the placeholder below with your linter command.
-# Examples:
-#   Python:     ruff check .
-#   Node/TS:    npx eslint .
-#   Go:         golangci-lint run
-#   Java:       mvn checkstyle:check
-run_step "Lint" "{{LINT_COMMAND}}"
+run_step_if "scripts" "Lint" "shellcheck scripts/*.sh"
 
 # ---------------------------------------------------------------------------
 # Step 2: Type Check
 # ---------------------------------------------------------------------------
 section "Type Check"
 
-# Replace the placeholder below with your type checker command.
-# Examples:
-#   Python:     mypy src/
-#   Node/TS:    npx tsc --noEmit
-#   Go:         go vet ./...
-#   Java:       (handled by compiler — can skip or use ErrorProne)
-run_step "Type Check" "{{TYPE_CHECK_COMMAND}}"
+run_step_if "docker-compose.yml" "Type Check" "docker compose config --quiet"
 
 # ---------------------------------------------------------------------------
 # Step 3: Unit Tests
 # ---------------------------------------------------------------------------
 section "Unit Tests"
 
-# Replace the placeholder below with your unit test command.
-# Examples:
-#   Python:     pytest tests/unit/ -v
-#   Node/TS:    npx vitest run --reporter=verbose
-#   Go:         go test ./... -short
-#   Java:       mvn test -pl unit-tests
-#
-# Replace {{UNIT_TEST_DIR}} with the test directory (e.g., tests/unit, src/__tests__).
-# If your test runner doesn't target a directory (e.g., Go), use run_step instead
-# of run_step_if and remove the {{UNIT_TEST_DIR}} line.
-run_step_if "{{UNIT_TEST_DIR}}" "Unit Tests" "{{UNIT_TEST_COMMAND}}"
+run_step_if "tests/unit" "Unit Tests" "echo 'No unit test framework configured for Bash/YAML project'"
 
 # ---------------------------------------------------------------------------
 # Step 4: Integration Tests
@@ -158,16 +135,7 @@ section "Integration Tests"
 if [ "$SKIP_INTEGRATION" = true ]; then
   skip_step "Integration Tests"
 else
-  # Replace the placeholder below with your integration test command.
-  # Examples:
-  #   Python:     pytest tests/integration/ -v
-  #   Node/TS:    npx vitest run --config vitest.integration.config.ts
-  #   Go:         go test ./... -run Integration
-  #   Java:       mvn verify -pl integration-tests
-  #
-  # Replace {{INTEGRATION_TEST_DIR}} with the test directory (e.g., tests/integration).
-  # If your test runner doesn't target a directory, use run_step instead.
-  run_step_if "{{INTEGRATION_TEST_DIR}}" "Integration Tests" "{{INTEGRATION_TEST_COMMAND}}"
+  run_step_if "tests/integration" "Integration Tests" "echo 'No integration test framework configured for Bash/YAML project'"
 fi
 
 # ---------------------------------------------------------------------------
@@ -175,13 +143,7 @@ fi
 # ---------------------------------------------------------------------------
 section "Build"
 
-# Replace the placeholder below with your build command.
-# Examples:
-#   Python:     python -m build
-#   Node/TS:    npm run build
-#   Go:         go build ./...
-#   Java:       mvn package -DskipTests
-run_step "Build" "{{BUILD_COMMAND}}"
+run_step "Build" "echo 'No build step required — wrapper repo with config and scripts only'"
 
 # ---------------------------------------------------------------------------
 # Summary

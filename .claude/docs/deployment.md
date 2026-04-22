@@ -1,55 +1,38 @@
 # Deployment
 
-<!-- This file is populated during project initialization.
-     Replace each {{PLACEHOLDER}} with project-specific content.
-     Delete these HTML comments after initialization. -->
-
 ## Environments
 
-<!-- List each environment with its purpose and key differences:
-     - Development / sandbox
-     - Staging / QA
-     - Production
-     Include URLs, regions, and any access restrictions. -->
-
-{{ENVIRONMENTS}}
+Local only. Single environment per developer machine. Each developer runs their own Archon instance via Docker Compose on `127.0.0.1:3000`.
 
 ## Deployment Process
 
-<!-- Step-by-step deployment procedure:
-     - How deployments are triggered (CI/CD, manual, approval gates)
-     - Build and artifact creation
-     - Deployment commands or pipeline references
-     - Post-deployment verification steps -->
+`docker compose up -d` is the deploy. For a fresh setup, follow the full procedure in `.claude/docs/setup.md`. For day-to-day use:
 
-{{DEPLOYMENT_PROCESS}}
+1. `docker compose pull` — pull the latest pinned image (only needed after version bump)
+2. `docker compose up -d` — start or recreate containers
+3. `./scripts/health.sh` — verify the container is healthy and the API responds
 
 ## Rollback Procedure
 
-<!-- How to revert a bad deployment:
-     - Rollback commands or steps
-     - How to identify which version to roll back to
-     - Expected rollback time
-     - Who to notify -->
-
-{{ROLLBACK_PROCEDURE}}
+1. Edit `docker-compose.yml` to revert the image tag to the previous version
+2. Pull and restart: `docker compose pull && docker compose up -d`
+3. If the database schema changed between versions, restore from backup:
+   ```bash
+   cp backups/archon-YYYYMMDD-HHMMSS.db ~/archon-data/archon.db
+   docker compose restart app
+   ```
+4. Verify: `./scripts/health.sh`
 
 ## Monitoring & Alerts
 
-<!-- Observability setup:
-     - Monitoring dashboards (URLs)
-     - Alert channels and escalation paths
-     - Key metrics to watch after deployment
-     - Log aggregation and search -->
-
-{{MONITORING_ALERTS}}
+- **Health check:** `./scripts/health.sh` checks container status and the `/api/health` endpoint
+- **Container logs:** `docker compose logs -f app` for real-time log streaming
+- **Docker status:** `docker compose ps` to see container state and uptime
+- No external monitoring dashboards or alert channels — this is a local development tool
 
 ## Access & Credentials
 
-<!-- Where credentials and secrets are stored — NOT the values themselves.
-     - Secrets manager (e.g., AWS Secrets Manager, Vault, 1Password)
-     - Service account locations
-     - API key rotation schedule
-     - Who to contact for access -->
-
-{{ACCESS_CREDENTIALS}}
+- **OAuth token:** Stored in `.env` file (`.gitignore`'d). Generated via `./scripts/setup-oauth.sh` using `claude setup-token`. Authenticates against Anthropic API using the developer's Max subscription.
+- **No rotation schedule** — OAuth tokens from Max subscription are long-lived. Regenerate via `./scripts/setup-oauth.sh` if needed.
+- **No shared credentials** — each developer has their own `.env` with their own token.
+- **PostgreSQL credentials** (optional profile only): Set via `DATABASE_URL` in `.env`. Only relevant when using `docker compose --profile with-db`.
