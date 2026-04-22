@@ -1,0 +1,39 @@
+services:
+  app:
+    image: ghcr.io/coleam00/archon:0.3.6
+    container_name: archon-app
+    env_file: .env
+    environment:
+      ARCHON_DOCKER: "true"
+    ports:
+      - "127.0.0.1:${PORT:-3000}:${PORT:-3000}"
+    volumes:
+      # Persistent data: SQLite DB, workspace clones, logs. Use ${HOME} — ~ does not expand in compose.
+      - ${HOME}/archon-data:/.archon
+      # Repo-managed workflows and commands mounted rw so Archon's UI can write new definitions back
+      # to the repo. Target paths double the .archon prefix (/.archon/.archon/workflows) because
+      # Archon resolves its scan paths relative to its home dir (/.archon at runtime), meaning it
+      # looks for .archon/workflows as a subdirectory inside that home. Verified in upstream
+      # packages/paths/src/archon-paths.ts and packages/workflows/src/workflow-discovery.ts.
+      - ./.archon/workflows:/.archon/.archon/workflows
+      - ./.archon/commands:/.archon/.archon/commands
+      # Config is ro — Archon must not overwrite its own configuration at runtime.
+      - ./.archon/config.yaml:/.archon/config.yaml:ro
+    networks:
+      - archon-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:${PORT:-3000}/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=1
+
+networks:
+  archon-network:
+    driver: bridge

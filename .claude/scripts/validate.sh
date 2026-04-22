@@ -118,7 +118,26 @@ run_step_if "scripts" "Lint" "shellcheck scripts/*.sh"
 # ---------------------------------------------------------------------------
 section "Type Check"
 
-run_step_if "docker-compose.yml" "Type Check" "docker compose config --quiet"
+if [ -f "docker-compose.yml" ]; then
+  # docker compose config requires env_file targets to exist on disk.
+  # Create a temp .env from .env.example when running in CI or on a fresh clone.
+  temp_env_created=false
+  if [ ! -f ".env" ] && [ -f ".env.example" ]; then
+    cp .env.example .env
+    temp_env_created=true
+    # Ensure cleanup even if the script is killed mid-run.
+    trap 'rm -f .env' EXIT
+  fi
+
+  run_step "Type Check" "docker compose config --quiet"
+
+  if [ "$temp_env_created" = true ]; then
+    rm -f .env
+  fi
+else
+  echo "⊘ Type Check skipped (docker-compose.yml does not exist yet)"
+  SKIPPED=$((SKIPPED + 1))
+fi
 
 # ---------------------------------------------------------------------------
 # Step 3: Unit Tests
