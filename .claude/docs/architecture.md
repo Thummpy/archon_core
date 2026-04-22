@@ -24,7 +24,7 @@ graph TD
 
 ### `app` Container (`archon-app`)
 
-The Archon monolith, running as `ghcr.io/coleam00/archon:{tag}`. Built on Bun + React, it exposes port 3000 on localhost only. The container reads custom workflow and command files from read-only volume mounts sourced from the wrapper repo. It writes all persistent data (SQLite database, workspace clones, worktrees, artifacts, logs) to the host-path volume at `~/archon-data/`. The container is stateless in the sense that replacing it loses no data — everything meaningful is on the host.
+The Archon monolith, running as `ghcr.io/coleam00/archon:{tag}`. Built on Bun + React, it exposes port 3000 on localhost only. The container reads and writes custom workflow and command files through read-write volume mounts sourced from the wrapper repo, allowing Archon's workflow builder UI to persist new definitions directly to the git-tracked tree. It writes all persistent data (SQLite database, workspace clones, worktrees, artifacts, logs) to the host-path volume at `~/archon-data/`. The container is stateless in the sense that replacing it loses no data — everything meaningful is on the host.
 
 ### Host-Path Volume (`~/archon-data/`)
 

@@ -114,7 +114,22 @@ section "Lint"
 run_step_if "scripts" "Lint" "shellcheck scripts/*.sh"
 
 # ---------------------------------------------------------------------------
-# Step 2: Type Check
+# Step 2: Workflow YAML Validation
+# ---------------------------------------------------------------------------
+section "Workflow YAML Validation"
+
+WORKFLOW_VALIDATOR="$(dirname "$0")/validate-workflow-yaml.sh"
+WORKFLOW_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.archon/workflows"
+
+if [ -d "$WORKFLOW_DIR" ] && [ -n "$(ls -A "$WORKFLOW_DIR" 2>/dev/null)" ]; then
+  run_step "Workflow YAML Validation" "$WORKFLOW_VALIDATOR"
+else
+  echo "⊘ Workflow YAML Validation skipped (.archon/workflows/ is empty or absent)"
+  SKIPPED=$((SKIPPED + 1))
+fi
+
+# ---------------------------------------------------------------------------
+# Step 3: Type Check
 # ---------------------------------------------------------------------------
 section "Type Check"
 
@@ -140,14 +155,14 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# Step 3: Unit Tests
+# Step 4: Unit Tests
 # ---------------------------------------------------------------------------
 section "Unit Tests"
 
 run_step_if "tests/unit" "Unit Tests" "echo 'No unit test framework configured for Bash/YAML project'"
 
 # ---------------------------------------------------------------------------
-# Step 4: Integration Tests
+# Step 5: Integration Tests
 # ---------------------------------------------------------------------------
 section "Integration Tests"
 
@@ -158,7 +173,7 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# Step 5: Build
+# Step 6: Build
 # ---------------------------------------------------------------------------
 section "Build"
 
