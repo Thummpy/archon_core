@@ -23,7 +23,7 @@ Wrapper repo pattern. The repo contains no application code — only Docker Comp
 - **SQLite over PostgreSQL as default** — Zero additional config, no extra container, no credentials to manage. Sufficient for single-user local use. Postgres available as optional `with-db` profile for anyone who needs it.
 - **rclone over Dropbox/Syncthing/manual rsync** — rclone supports 40+ cloud providers (Google Drive, S3, Dropbox, etc.), has a mature CLI, and handles OAuth for Drive natively. Single tool covers all sync destinations.
 - **OAuth over API key** — Max subscription provides fixed-cost billing. For power users running multiple workflows daily, API billing would be significantly more expensive.
-- **Read-only volume mounts for workflows/commands** — Prevents the container from modifying harness definitions. The repo is the source of truth; the container consumes it.
+- **Read-write volume mounts for workflows/commands, read-only for config** — Workflow and command directories are mounted read-write so Archon's workflow builder UI can write new definitions directly to the wrapper repo. Config (`.archon/config.yaml`) is mounted `:ro` since Archon should not modify its own configuration at runtime. The git repo remains the source of truth — workflows created in the UI land on the host filesystem and must be committed to share with the team.
 - **Docs as first-class deliverable** — The target audience includes developers who may not know Docker. Bad docs = support tickets to Chris. Good docs = self-service onboarding.
 
 ## Constraints
