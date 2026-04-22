@@ -1,41 +1,68 @@
-# Handoff — 2026-04-22 (Issue #2)
+# Handoff — 2026-04-22 (Issue #3)
 
 ## Goal
 
-Deliver `scripts/health.sh` — the first operational script — that verifies the Archon container is running and the `/api/health` endpoint is responsive. Establishes the pattern for subsequent ops scripts.
+Deliver `scripts/setup-oauth.sh` — the first-time-setup script that installs
+the `claude` CLI if missing, runs `claude setup-token` to mint a long-lived
+OAuth token, and writes `CLAUDE_CODE_OAUTH_TOKEN` into `.env` without
+clobbering other keys. OAuth setup is the critical path for Archon to
+authenticate with the Anthropic API.
 
 ## What Was Done
 
-- Created `scripts/health.sh` (136 lines, executable):
-  - `#!/usr/bin/env bash` + `set -euo pipefail`.
-  - Named constants: `DEFAULT_PORT=3000`, `HEALTH_ENDPOINT=/api/health`, `CONTAINER_NAME=archon-app`.
-  - `check_deps` — requires `docker` and `curl`, prints install hints on miss.
-  - `check_container` — parses `docker compose ps --format json` for State/Health of `archon-app` (health gate).
-  - `check_api` — `curl -sf --max-time 5` against `http://localhost:${PORT:-3000}/api/health` (health gate).
-  - `check_workflows` — informational count via `docker compose exec -T app archon workflow list | wc -l`; never gates health.
-  - Summary line + `--help` / `-h` flag.
-- Validation: `bash -n` OK, `shellcheck` clean, `.claude/scripts/validate.sh --skip-integration` passed (3 passed, 2 skipped gracefully).
+- Created `scripts/setup-oauth.sh` (162 lines, executable). Mirrors
+  `scripts/health.sh` structure: strict mode, `check_deps`, `→/✓/✗` narration,
+  `main "$@"`.
+- `check_deps` requires `claude` on PATH; prints a one-line install hint
+  (`curl -fsSL https://claude.ai/install.sh | bash`) and exits 1 if missing.
+  The script does not install third-party binaries itself.
+- `verify_repo_preconditions` aborts if `.env.example` is missing or `.env`
+  is not listed in `.gitignore` — refuses to write credentials to a tracked
+  file.
+- `generate_token` tees `claude setup-token` output to a `mktemp` file with a
+  `trap ... EXIT` cleanup; extracts the last token-shaped match via
+  `grep -oE '[A-Za-z0-9_.-]{32,}' | tail -n1`. Narration routes to stderr;
+  only the token goes to stdout.
+- `upsert_env_key` rewrites `.env` atomically via tempfile + `mv`, then
+  `chmod 600`. Preserves other keys and the template comments.
+- Self-review (`/review 3`) recorded 19 pass / 3 warnings / 0 fail on the
+  original 205-line version; post-trim pass expected to be equivalent or
+  better.
+- Validation: `.claude/scripts/validate.sh --skip-integration` passed.
+  `shellcheck` clean.
 
 ## Key Decisions
 
-- **`curl` as required dep, not `jq`.** Issue AC listed `jq`; the PRP revised this because the health gate uses `curl` and JSON parsing is done with `grep -o` (dependency-free).
-- **Workflow count is informational only.** No REST endpoint for workflows — listing is CLI-only. Never a health gate.
-- **`PORT` honored to match `docker-compose.yml`.** Uses same var + default (`3000`) so the script hits the right port regardless of user override.
-- **Absolute `-f` path to compose file.** Script resolves `PROJECT_DIR` from its own location so it works from any cwd.
+- **No in-script installer for `claude`.** Every Atyeti dev already has the
+  Claude Code CLI; installing it is a one-liner from the user, and auto-
+  installing third-party binaries via `curl | bash` is an untestable code
+  path on a repo where everyone already has `claude`. `check_deps` fails
+  fast with the install command instead.
+- **Token captured from stdout of `claude setup-token`** (per the
+  authentication docs: "prints a token to the terminal. It does not save
+  the token anywhere"). Do NOT scrape `~/.claude/.credentials.json` — that
+  is a different credential.
+- **`{32,}` minimum in the token regex** is a defensive floor kept inline
+  at the one call site. Flagged as a WARN for a possible `readonly
+  MIN_TOKEN_CHARS` extraction if the CLI output format changes.
 
 ## Current State
 
-Branch `feat/issue-2-create-health-sh-script` committed, pushed, PR opened. PRP `.claude/prps/2.md` removed in this commit (git history preserves it). No runtime test against a live container — requires the compose stack running and is out of scope.
+Branch `feat/issue-3-create-setup-oauth-sh-script` committed + force-pushed
+after the in-script installer was removed. PR #18 is open with `Closes #3`.
+Browser OAuth flow was NOT exercised from this session — must be run
+end-to-end on a real dev machine (first-run + idempotent re-run) before
+the PR is approved.
 
 ## Next Steps
 
-1. **Issue #15** — close manually (rw mounts already shipped in #1 PR).
-2. **Issue #3** — `setup-oauth.sh` (priority:high).
-3. **Issue #4** — `backup.sh`.
-4. **Issue #5** — `atyeti-pev.yaml` PEV workflow (priority:high).
-5. **Issue #7** — `docs/SETUP.md` (priority:high, blocks team onboarding).
-6. **Issue #8** — `sync-up.sh` / `sync-down.sh` (priority:high).
+1. Manual end-to-end test of `scripts/setup-oauth.sh` on a clean machine
+   and on one with `claude` already installed.
+2. **Issue #4** — `backup.sh` (ops).
+3. **Issue #5** — `atyeti-pev.yaml` PEV workflow (priority:high).
+4. **Issue #7** — `docs/SETUP.md` (priority:high, blocks team onboarding).
+5. **Issue #8** — `sync-up.sh` / `sync-down.sh` (priority:high).
 
 ## Issue Tracker Status
 
-- #2 — pending PR merge (auto-closes via `Closes #2` in PR body).
+- #3 — pending PR merge (auto-closes via `Closes #3` in PR body).
