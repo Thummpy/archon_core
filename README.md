@@ -26,7 +26,7 @@ docker compose pull
 docker compose up -d
 ```
 
-See [.claude/docs/setup.md](.claude/docs/setup.md) for detailed step-by-step instructions (including Docker installation for first-time users).
+See [docs/SETUP.md](docs/SETUP.md) for detailed step-by-step instructions (including Docker installation for first-time users).
 
 ## Architecture
 
