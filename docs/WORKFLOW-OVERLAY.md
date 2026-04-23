@@ -39,15 +39,15 @@ Config is single-source: /.archon/config.yaml (rw). No overlay — host copy is 
 
 **This document describes behavior at image tag `ghcr.io/coleam00/archon:0.3.6`.** Overlay precedence, restart requirements, and command discovery are version-specific. After a tag bump in `docker-compose.yml`, review the Archon release notes to confirm the contract is unchanged.
 
-> Verified against this image on 2026-04-23 — see [`.claude/docs/smoke-tests.md`](../.claude/docs/smoke-tests.md#test-23--workflowcommands-scan-paths).
+> Verified against this image on 2026-04-23 — see [`.claude/docs/smoke-tests.md`](../.claude/docs/smoke-tests.md) (Test 23: scan paths — PASS; Test 24: UI write-back — PARTIAL, see caveat in §1 below).
 
 ## Three ways to create or modify a workflow
 
 ### 1. Archon's workflow builder UI
 
-Open the Archon web interface at `http://localhost:3000` and use the workflow builder to create or edit a workflow. Archon writes the YAML through the read-write volume mount directly to your repo's `.archon/workflows/` directory.
+Open the Archon web interface at `http://localhost:3000` and use the workflow builder to create or edit a workflow (`Workflows → + New Workflow`). When the save completes fully, Archon writes the YAML through the read-write volume mount to your repo's `.archon/workflows/` directory **and** stores a record in SQLite (`~/archon-data/archon.db`).
 
-**What you should see:** After saving in the UI, a new `.yaml` file appears on your machine under `.archon/workflows/`. Confirm with:
+**What you should see:** After a successful save, a new `.yaml` file appears on your machine under `.archon/workflows/`. Confirm with:
 
 ```bash
 git status
@@ -55,13 +55,16 @@ git status
 
 You should see the new file listed as untracked under `.archon/workflows/`.
 
-> **Always restart after any file change.** Archon reads workflow definitions at startup. `docker compose restart app` is the safe blanket rule for all three creation methods — do not assume hot-reload.
+> **Caveat — the save requires a working Claude API connection.** Archon makes an outbound call to the Claude API as part of the save process (model validation or workflow compilation). If that call hangs — for example, because `CLAUDE_CODE_OAUTH_TOKEN` is expired or not usable by Archon — the save stalls at ~89%. In this state, the YAML file is written to disk (and visible via `git status`) but the SQLite record is not written, so the workflow does not appear in Archon's Workflows UI page. If your save stalls, check your token first (see issue #25) and re-save after refreshing it.
+
+> **UI listing reads from SQLite, not YAML files.** Archon's Workflows page (`/workflows`) reads from its database, not from YAML files in `/.archon/.archon/workflows/`. A YAML file being present on disk does not guarantee the workflow appears in the UI — the database record (written on a complete save) is the authoritative source for the UI listing. A `docker compose restart app` after a complete save is sufficient for the workflow to persist across restarts; Archon's startup log shows no scan of `/.archon/.archon/workflows/` at boot (only the bundled defaults path is verified — see `.claude/docs/smoke-tests.md` Test 24).
+
+After a successful save, stage and commit the YAML file to share it with the team:
 
 ```bash
-docker compose restart app
+git add .archon/workflows/
+git commit -m "feat(workflow): add <name> workflow"
 ```
-
-`docker compose restart app` stops and restarts only the `app` container, causing it to re-scan the mounted directories. The container itself is not replaced and no data is lost.
 
 ### 2. Hand-written YAML + restart
 
