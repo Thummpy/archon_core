@@ -32,7 +32,7 @@ A regular directory on the host filesystem mapped to `/.archon` inside the conta
 
 ### Repo Volume Mounts
 
-`.archon/workflows/` and `.archon/commands/` from the wrapper repo are mounted into the container as read-write volumes. These contain custom Archon workflow YAML files and command Markdown files. Same-name files override Archon defaults. The read-write mount allows Archon's workflow builder UI to write new workflow definitions directly to the host filesystem, where they can be committed and pushed via git. The team shares workflows bidirectionally: receiving via `git pull` + restart, creating via the UI + `git commit` + `git push`. Configuration (`.archon/config.yaml`) is mounted read-only (`:ro`) since Archon should not modify its own config at runtime.
+`.archon/workflows/` and `.archon/commands/` from the wrapper repo are mounted into the container as read-write volumes. These contain custom Archon workflow YAML files and command Markdown files. Same-name files override Archon defaults. The read-write mount allows Archon's workflow builder UI to write new workflow definitions directly to the host filesystem, where they can be committed and pushed via git. The team shares workflows bidirectionally: receiving via `git pull` + restart, creating via the UI + `git commit` + `git push`. Configuration (`.archon/config.yaml`) is mounted read-write — Archon's setup wizard persists credentials here, and the container entrypoint rejects `:ro` targets inside `/.archon`.
 
 ### Scripts (`scripts/`)
 
@@ -68,6 +68,6 @@ See `.claude/docs/deployment.md` for operational procedures.
 
 - **Authentication:** OAuth token stored in `.env` file, which is `.gitignore`'d and never committed. Token generated via `claude setup-token` on the host. Authenticates against Anthropic API using the developer's Max subscription.
 - **Network exposure:** Archon Web UI and API bound to `127.0.0.1:3000` only — no external port exposure. No authentication on the UI, which is acceptable for a single-user local installation.
-- **Volume mounts:** Custom workflow and command directories mounted read-write so Archon's builder UI can create new definitions. Configuration mounted read-only (`:ro`). The git repo is the source of truth — UI-created workflows must be committed to persist across clones.
+- **Volume mounts:** Custom workflow and command directories mounted read-write so Archon's builder UI can create new definitions. Configuration mounted read-write; wizard-written changes are reviewed via `git diff` before committing. The git repo is the source of truth — UI-created workflows must be committed to persist across clones.
 - **Host filesystem:** `~/archon-data/` is user-owned on the host. Standard filesystem permissions apply. No special encryption at rest beyond OS-level disk encryption.
 - **Secrets management:** `.env` is the only secrets file. `.env.example` provides the template without values. No secrets in Docker Compose, Dockerfiles, or workflow YAML files.
