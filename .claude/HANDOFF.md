@@ -1,31 +1,30 @@
-# Handoff — Issue #27 complete; Issue #23 ready to resume
+# Handoff — Issue #23 complete
 
 ## Goal
-Fix the container restart-loop caused by `:ro` on the `config.yaml` bind mount blocking the entrypoint chown.
+Verify that Archon 0.3.6 actually scans the bind-mount paths declared in docker-compose.yml for user workflow/command overrides.
 
 ## What Was Done
-- Removed `:ro` from `docker-compose.yml` config.yaml mount — the Archon 0.3.6 entrypoint runs `chown -Rh appuser:appuser /.archon` on every start and exits fatally against any read-only target inside `/.archon`
-- Added `PORT: "${PORT:-3000}"` to the `environment:` block — without this, PORT wasn't reaching the container so Archon defaulted to port 3090 while the healthcheck checked 3000 (mismatch)
-- Deleted a stale 16-byte text placeholder at `~/archon-data/archon.db` left from a prior test; Archon created a valid 4KB SQLite database on first clean boot
-- Moved `open-webui` from port 3000 → 3051 (it had `--restart always` holding port 3000; Archon now owns 3000)
-- Updated all docs that claimed config was `:ro`: `PLANNING.md`, `architecture.md`, `WORKFLOW-OVERLAY.md`, `.archon/config.yaml` header
+- Ran live smoke tests against `ghcr.io/coleam00/archon:0.3.6`.
+- Four probes confirmed both `/.archon/.archon/workflows` and `/.archon/.archon/commands` exist, are owned by `appuser`, and appear in Archon's active scan paths.
+- Archon's own startup log (`paths_configured: home=/.archon`) proves the doubled-path design is correct and working.
+- Created `.claude/docs/smoke-tests.md` — append-only per-tag verification runbook with Test 23 (PASS), Test 24 (pending), Test 25 (pending).
+- Added dated verification note to `docs/WORKFLOW-OVERLAY.md` linking to the smoke test evidence.
 
 ## Key Decisions
-- `:ro` on anything inside `/.archon` is permanently forbidden — the entrypoint walks the whole tree on every boot
-- Trust model is now uniform: workflows, commands, and config are all `rw`; `git diff` is the audit trail for all three
+- Smoke test runbook is append-only — prior entries never overwritten; new version sections appended after tag bumps.
+- Tests 24 and 25 left as pending with issue refs; they are separate scopes.
 
 ## Current State
-- Archon running healthy on port 3000; `docker compose up -d` with no args works on a clean machine
-- `scripts/health.sh` returns exit 0; real SQLite DB at `~/archon-data/archon.db`
-- Issue #27 PR open; auto-closes on merge
+- Branch `feat/issue-23-...` PR open → auto-closes #23 on merge.
+- Archon healthy on port 3000. open-webui on port 3051.
+- `~/archon-data/archon.db` is a valid 4KB SQLite file.
 
 ## Next Steps
-1. Merge PR #27
-2. `git checkout main && git pull`
-3. `git checkout feat/issue-23-verify-archon-0-3-6-workflow-commands-scan-paths-m && git rebase main`
-4. Resume #23 from Task 1 using `.claude/prps/23-verify-archon-scan-paths.md` — health gate now passes
+1. **Issue #24** — Verify UI write-back: create a workflow in the Archon web UI at localhost:3000, confirm `.yaml` appears under `.archon/workflows/`, survives `docker compose down/up`.
+2. **Issue #25** — Determine `CLAUDE_CODE_OAUTH_TOKEN` lifetime and whether Archon provides auto-refresh.
+3. **Issue #19** — Backup consistency model (cp vs sqlite3 .backup).
+4. Remaining docs issues: #11, #9, #13.
 
 ## Issue Tracker
-- #27 — CLOSED by this PR
-- #23 — PAUSED, unblocked, ready to resume (PRP committed to this branch)
-- #24, #25 — unblocked (both depend on healthy container)
+- #23: closing via this PR
+- #24, #25: open, unblocked

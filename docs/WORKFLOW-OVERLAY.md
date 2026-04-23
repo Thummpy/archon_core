@@ -39,6 +39,8 @@ Config is single-source: /.archon/config.yaml (rw). No overlay — host copy is 
 
 **This document describes behavior at image tag `ghcr.io/coleam00/archon:0.3.6`.** Overlay precedence, restart requirements, and command discovery are version-specific. After a tag bump in `docker-compose.yml`, review the Archon release notes to confirm the contract is unchanged.
 
+> Verified against this image on 2026-04-23 — see [`.claude/docs/smoke-tests.md`](../.claude/docs/smoke-tests.md#test-23--workflowcommands-scan-paths).
+
 ## Three ways to create or modify a workflow
 
 ### 1. Archon's workflow builder UI
