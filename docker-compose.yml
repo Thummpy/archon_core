@@ -5,6 +5,7 @@ services:
     env_file: .env
     environment:
       ARCHON_DOCKER: "true"
+      PORT: "${PORT:-3000}"
     ports:
       - "127.0.0.1:${PORT:-3000}:${PORT:-3000}"
     volumes:
@@ -17,8 +18,10 @@ services:
       # packages/paths/src/archon-paths.ts and packages/workflows/src/workflow-discovery.ts.
       - ./.archon/workflows:/.archon/.archon/workflows
       - ./.archon/commands:/.archon/.archon/commands
-      # Config is ro — Archon must not overwrite its own configuration at runtime.
-      - ./.archon/config.yaml:/.archon/config.yaml:ro
+      # Config is rw — Archon's setup wizard writes credentials here at runtime, and the
+      # entrypoint's recursive chown over /.archon fails fatally on any :ro target inside
+      # that tree. Runtime writes surface as `git diff .archon/config.yaml`; review before committing.
+      - ./.archon/config.yaml:/.archon/config.yaml
     networks:
       - archon-network
     restart: unless-stopped

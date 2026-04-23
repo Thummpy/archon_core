@@ -19,7 +19,7 @@ Archon resolves workflows and commands from three sources, in priority order:
 |---|---|---|---|---|---|
 | Custom/override workflows | `.archon/workflows/` | `/.archon/.archon/workflows/` | rw | Yes | Yes |
 | Bundled image defaults | (inside Docker image) | (image filesystem) | n/a | No | No |
-| Config | `.archon/config.yaml` | `/.archon/config.yaml` | ro | Yes | No |
+| Config | `.archon/config.yaml` | `/.archon/config.yaml` | rw | Yes | Yes |
 
 Same model applies to commands at `/.archon/.archon/commands/`.
 
@@ -32,7 +32,7 @@ Resolution order for a workflow named "foo.yaml":
   3. (not found)                              ← Archon errors / skips
 
 Same model applies to commands at /.archon/.archon/commands/.
-Config is single-source: /.archon/config.yaml (:ro). No overlay.
+Config is single-source: /.archon/config.yaml (rw). No overlay — host copy is authoritative; runtime wizard writes surface as `git diff`.
 ```
 
 > **Why the doubled `.archon` in the container path?** The container's home directory is `/.archon` (mapped from `~/archon-data` on your host). Archon resolves scan paths as `<home>/.archon/<kind>`, so the mount target must be `/.archon/.archon/workflows`, not `/.archon/workflows`. This is intentional — do not "clean up" the doubled prefix or workflow discovery will silently break. The rationale is preserved in the `docker-compose.yml` inline comment.
@@ -160,7 +160,7 @@ git push
 
 ## Trust model
 
-The read-write mount gives the Archon container write authority over `.archon/workflows/` and `.archon/commands/` on your machine. A runtime bug or a malicious workflow could write unexpected files to those directories. This risk is accepted for three reasons: Archon is bound to `127.0.0.1:3000` and is not reachable from the network, it runs under your own user account with standard filesystem permissions, and `git diff` after any UI session provides a clear audit trail of what changed. The `.archon/config.yaml` mount remains `:ro` so Archon cannot rewrite its own configuration at runtime.
+The read-write mount gives the Archon container write authority over `.archon/workflows/` and `.archon/commands/` on your machine. A runtime bug or a malicious workflow could write unexpected files to those directories. This risk is accepted for three reasons: Archon is bound to `127.0.0.1:3000` and is not reachable from the network, it runs under your own user account with standard filesystem permissions, and `git diff` after any UI session provides a clear audit trail of what changed. The `.archon/config.yaml` mount is read-write so Archon's setup wizard can persist credentials. The same `git diff` audit trail applies — review before committing. Do not add `:ro` to any path inside `/.archon`; the container entrypoint's recursive chown fails fatally against read-only targets.
 
 No secrets belong in `.archon/workflows/` or `.archon/commands/`. Both directories are git-tracked. The OAuth token lives in `.env`, which is `.gitignore`'d and injected via `env_file:` in `docker-compose.yml`.
 

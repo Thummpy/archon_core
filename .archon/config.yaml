@@ -1,6 +1,6 @@
 # Archon configuration overrides for this deployment.
 #
-# This file is mounted read-only at /.archon/config.yaml inside the container.
+# This file is mounted read-write at /.archon/config.yaml inside the container.
 # Add keys here to override Archon defaults without modifying the upstream image.
 # See upstream Archon docs for the full list of supported config keys.
 #
