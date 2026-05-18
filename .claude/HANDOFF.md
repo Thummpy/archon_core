@@ -1,47 +1,39 @@
-# Handoff — Issue #11: Write docs/SHARING-WORKFLOWS.md and docs/DAILY-USE.md
+# Handoff — Issue #12: Create upgrade.sh with backup safety
 
 ## Goal
 
-Create two day-to-day operation guides for developers who have completed initial setup: a workflow sharing guide and a daily operations guide.
+Create `scripts/upgrade.sh` that safely upgrades the pinned Archon Docker image
+version with pre-upgrade SQLite backup and post-upgrade health validation.
 
 ## What Was Done
 
-- **Created** `docs/SHARING-WORKFLOWS.md` (136 lines) — team git workflow for sharing custom workflows:
-  - Prerequisites, how sharing works (git-based model), getting workflows (pull → restart → verify)
-  - Contributing workflows (three methods, all referencing WORKFLOW-OVERLAY.md for authoring details)
-  - Filename override behavior (same-name precedence, `archon-` prefix convention, stub suppression)
-  - CLI vs. Web UI listing caveat (SQLite vs. YAML, issue #30 transparency)
-  - 89% save stall documented in troubleshooting section
-
-- **Created** `docs/DAILY-USE.md` (279 lines) — routine operations guide:
-  - Start/stop Archon, health checks (`health.sh` + `docker compose ps`), log streaming
-  - Listing all 10 built-in workflows with description table
-  - Running workflows from CLI with examples (`archon-assist`, `archon-fix-github-issue`) and flag reference
-  - Running workflows from Web UI (`localhost:3000`, workflows page, builder)
-  - Checking status, resuming failed runs, approve/reject gates
-  - Viewing results (terminal streaming, artifacts, PR URLs, worktree isolation)
-  - `archon doctor` validation, restart patterns (restart vs. down+up)
-  - `docker compose exec app` prefix pattern explained for zero-Docker-knowledge audience
-
-- **Updated** `docs/SETUP.md` line 244 — replaced "coming soon — issue #11" with proper Markdown link to DAILY-USE.md
+- **Created** `scripts/upgrade.sh` (212 lines, 12 functions):
+  - `stop_archon()` — mirrors sync-up.sh exactly; handles already-stopped gracefully
+  - `run_backup()` — calls backup.sh, captures stdout as backup path; **hard-fails** if DB missing (unlike sync-up.sh which tolerates missing DB — you can't upgrade what was never set up)
+  - `update_compose_tag()` / `revert_compose_tag()` — portable sed via mktemp/mv (no `sed -i`); update verifies with grep-q after write
+  - `pull_image()` — reverts compose file on pull failure (safe: no data touched before pull)
+  - `validate_health()` — delegates to health.sh, returns 1 without aborting
+  - `print_rollback_instructions()` — numbered 5-step guide with exact backup path and old tag embedded
+  - `main()` — full flow with `--dry-run`, idempotent same-version check, explicit exit codes (0/1/2)
 
 ## Key Decisions
 
-- SHARING-WORKFLOWS.md delegates all overlay technical details to WORKFLOW-OVERLAY.md — focuses strictly on the team git collaboration workflow
-- Used generic `<tag>` placeholder in `docker compose ps` example output to avoid stale version references
-- Documented issue #30 (git-pull workflow sharing unverified) transparently without claiming verified status
+- **No auto-rollback on health failure** — the new Archon version may have modified DB schema during startup; auto-revert without DB restore would leave inconsistent state. Rollback instructions printed instead (exit code 2).
+- **Revert on pull failure only** — pull failure means no new image fetched and no data touched; safe to revert compose file. Contrast with health failure where data may already be modified.
+- **Hard backup failure** — unlike sync-up.sh which tolerates a missing DB for first-sync, upgrade.sh exits on backup failure. You cannot safely upgrade without a backup.
 
 ## Current State
 
-- All changes committed, PR created, issue #11 closed
+- `scripts/upgrade.sh` committed, PR created, issue #12 closed
 - Validation: 4 passed, 0 failed, 2 skipped
+- Shellcheck: 0 warnings
 
 ## Next Steps
 
-1. **Issue #13** — Create `docs/UPGRADING.md` (version bump procedure with backup safety)
-2. **TROUBLESHOOTING.md** — all 5 docs now link to this planned file; creating it would resolve dead links
-3. **Issue #30** — smoke-test git-pull workflow sharing end-to-end
+1. **Issue #13** — Create `docs/UPGRADING.md` and `docs/TROUBLESHOOTING.md`
+2. **Issue #19** — Define backup consistency model (cp vs sqlite3 .backup) — may affect upgrade.sh's pre-upgrade backup strategy
+3. **Issue #30** — Verify git-pull workflow sharing end-to-end
 
 ## Issue Tracker
 
-- #11: closed by PR
+- #12: closed by PR
