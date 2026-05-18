@@ -1,41 +1,47 @@
-# Handoff — Issue #9: Write docs/SYNC-BETWEEN-MACHINES.md
+# Handoff — Issue #11: Write docs/SHARING-WORKFLOWS.md and docs/DAILY-USE.md
 
 ## Goal
 
-Create a beginner-friendly guide for syncing Archon data between machines using rclone and the sync scripts from issue #8.
+Create two day-to-day operation guides for developers who have completed initial setup: a workflow sharing guide and a daily operations guide.
 
 ## What Was Done
 
-- **Created** `docs/SYNC-BETWEEN-MACHINES.md` (259 lines) — full guide covering:
-  - Prerequisites, "Why sync?", and "How it works" architecture overview
-  - Step-by-step rclone install and Google Drive remote configuration (13-step wizard walkthrough)
-  - Optional `RCLONE_REMOTE` configuration in `.env`
-  - `sync-up.sh` usage with `--restart` and `--dry-run` flags
-  - `sync-down.sh` usage with `--yes`, `--no-restart`, and `--dry-run` flags
-  - `--dry-run` for sync-down documented with prompt interaction, side effects, and recommended low-disruption combo (`--dry-run --yes --no-restart`)
-  - Common scenarios (leaving laptop, arriving at desktop)
-  - "What you should see" output after every procedural step
-  - SQLite WAL constraint explained (WHY, not just WHAT)
-  - One-directional sync warning, destructive overwrite warning, headless OAuth gotcha
+- **Created** `docs/SHARING-WORKFLOWS.md` (136 lines) — team git workflow for sharing custom workflows:
+  - Prerequisites, how sharing works (git-based model), getting workflows (pull → restart → verify)
+  - Contributing workflows (three methods, all referencing WORKFLOW-OVERLAY.md for authoring details)
+  - Filename override behavior (same-name precedence, `archon-` prefix convention, stub suppression)
+  - CLI vs. Web UI listing caveat (SQLite vs. YAML, issue #30 transparency)
+  - 89% save stall documented in troubleshooting section
 
-- **Updated** `docs/SETUP.md` line 246 — converted "coming soon" plain-text reference to a proper Markdown link
+- **Created** `docs/DAILY-USE.md` (279 lines) — routine operations guide:
+  - Start/stop Archon, health checks (`health.sh` + `docker compose ps`), log streaming
+  - Listing all 10 built-in workflows with description table
+  - Running workflows from CLI with examples (`archon-assist`, `archon-fix-github-issue`) and flag reference
+  - Running workflows from Web UI (`localhost:3000`, workflows page, builder)
+  - Checking status, resuming failed runs, approve/reject gates
+  - Viewing results (terminal streaming, artifacts, PR URLs, worktree isolation)
+  - `archon doctor` validation, restart patterns (restart vs. down+up)
+  - `docker compose exec app` prefix pattern explained for zero-Docker-knowledge audience
+
+- **Updated** `docs/SETUP.md` line 244 — replaced "coming soon — issue #11" with proper Markdown link to DAILY-USE.md
 
 ## Key Decisions
 
-- Documented `--dry-run` for sync-down (not in original PRP) after review identified the gap — especially important since sync-down is destructive and users benefit from previewing
-- Noted that `--dry-run` still stops/restarts Archon (script behavior) and recommended the `--dry-run --yes --no-restart` combo for minimal disruption
+- SHARING-WORKFLOWS.md delegates all overlay technical details to WORKFLOW-OVERLAY.md — focuses strictly on the team git collaboration workflow
+- Used generic `<tag>` placeholder in `docker compose ps` example output to avoid stale version references
+- Documented issue #30 (git-pull workflow sharing unverified) transparently without claiming verified status
 
 ## Current State
 
-- All changes committed, PR created, issue #9 closed
-- Validation: 4 passed, 0 failed, 2 skipped (no unit/integration test dirs yet)
+- All changes committed, PR created, issue #11 closed
+- Validation: 4 passed, 0 failed, 2 skipped
 
 ## Next Steps
 
-1. **Issue #12** — Create `upgrade.sh` script with backup safety
-2. **Issue #19** — Define backup consistency model (cp vs sqlite3 .backup)
-3. Remaining docs: #11 (DAILY-USE), #13 (UPGRADING + TROUBLESHOOTING)
+1. **Issue #13** — Create `docs/UPGRADING.md` (version bump procedure with backup safety)
+2. **TROUBLESHOOTING.md** — all 5 docs now link to this planned file; creating it would resolve dead links
+3. **Issue #30** — smoke-test git-pull workflow sharing end-to-end
 
 ## Issue Tracker
 
-- #9: closed by PR
+- #11: closed by PR
