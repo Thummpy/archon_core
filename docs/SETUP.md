@@ -243,7 +243,7 @@ Finally, open `http://localhost:3000` in your browser to access the Archon web U
 - **Daily commands** — starting, stopping, viewing logs, and restarting after a `git pull`;
   see `docs/DAILY-USE.md` (coming soon — issue #11).
 - **Sync data across machines** — use `rclone` and the sync scripts; see
-  `docs/SYNC-BETWEEN-MACHINES.md` (coming soon — issue #9).
+  [`docs/SYNC-BETWEEN-MACHINES.md`](SYNC-BETWEEN-MACHINES.md).
 - **Upgrade the pinned version** — see `docs/UPGRADING.md` (coming soon — issue #13).
 
 ## Something went wrong?
