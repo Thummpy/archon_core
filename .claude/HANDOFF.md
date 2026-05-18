@@ -1,34 +1,30 @@
-# Handoff — Issue #24 complete (PARTIAL)
+# Handoff — Issue #8: sync-up.sh and sync-down.sh
 
 ## Goal
-Verify that workflows authored in the Archon 0.3.6 browser UI write to the host bind-mount at `.archon/workflows/` and survive `docker compose restart app`.
+Create two host-run Bash scripts for cross-machine data sync via rclone, enabling the laptop-desktop workflow.
 
 ## What Was Done
-- Ran live smoke test: UI workflow builder found at `Workflows → + New Workflow → /workflows/builder`.
-- **Bind-mount write-back: CONFIRMED.** File `smoke-test.yaml` appeared on host within ~5 seconds of clicking Save.
-- **SQLite persistence: UNCONFIRMED.** Save stalled at ~89% — Archon makes an outbound Claude API call during save (model validation/compilation). Call hung, likely expired `CLAUDE_CODE_OAUTH_TOKEN` (see issue #25). SQLite record never written; `/api/workflows` returned `{"workflows":[]}`.
-- **Key structural finding:** Archon's UI Workflows page reads from SQLite, not YAML files on disk. Startup log confirms no scan of `/.archon/.archon/workflows/` at boot — only bundled defaults at `/app/.archon/workflows/defaults/` are loaded.
-- Filed **issue #30**: verify whether a hand-placed YAML in `.archon/workflows/` appears in Archon's UI after restart (the unverified git-sharing model). Depends on #25 being resolved first.
-- Commented on **issue #25** with Test 24 as supporting evidence for Outcome C (expired token).
-- Filled Test 24 slot in `.claude/docs/smoke-tests.md`: pending → PARTIAL with full verbatim evidence.
-- Updated `docs/WORKFLOW-OVERLAY.md` §1: added two caveats (API call gates save; SQLite is UI source of truth, not YAML files).
+- Created `scripts/sync-up.sh` (181 lines) — stops Archon, backs up DB, syncs `~/archon-data/` to rclone remote. Defaults to NOT restarting (operator is leaving this machine).
+- Created `scripts/sync-down.sh` (223 lines) — stops Archon, pulls rclone remote to `~/archon-data/`, restarts by default (operator just arrived). Requires `--yes` or interactive `YES` confirmation before overwriting local data.
+- Both scripts: `set -euo pipefail`, dep checks (docker + rclone with install hints), `RCLONE_REMOTE` fallback chain (shell env, `.env`, `gdrive:archon-data`), remote verification via `rclone listremotes`, `docker compose down` (not stop) before any sync, `--dry-run` passthrough, `--help` self-documentation, narration markers to stderr.
+- All static validation passed: `bash -n`, `shellcheck` (zero warnings), executable bits, `--help` grep checks, missing-tool narration check.
 
 ## Key Decisions
-- PARTIAL (not FAIL): the bind-mount write IS real; the failure was in the API-gated SQLite write blocked by a likely expired token.
-- Removed "always restart" blanket note from §1 — misleading for UI-authored workflows where restart can't recover an incomplete save.
+- Scripts are fully self-contained (no shared lib) — matches project convention where existing scripts share no code.
+- `read_env_key()` uses `grep`+`cut` (not `source .env`) to avoid shell metacharacter issues under `set -u`.
+- rclone flags use array-based approach for shellcheck compliance.
+- sync-up calls `backup.sh` after `docker compose down` (not before) per backup.sh's own usage contract.
 
 ## Current State
-- PR open on `feat/issue-24-...` → auto-closes #24 on merge.
-- Container healthy on port 3000. `archon.db` at `~/archon-data/archon.db`.
+- PR created on `feat/issue-8-...` branch, auto-closes #8 on merge.
+- Live rclone sync tests are operator-only (rclone not installed in agent env). Static validation complete.
 
 ## Next Steps
-1. **Issue #25** — resolve OAuth token lifetime; fix so Archon can complete outbound API calls during workflow save.
-2. **Issue #30** — after #25: hand-place a valid YAML in `.archon/workflows/`, verify it appears in UI after restart. Use bundled schema (`model: sonnet`, block-style `nodes:`).
-3. **Issue #19** — backup consistency model (cp vs sqlite3 .backup).
-4. **Issue #12** — upgrade.sh script.
-5. Remaining docs: #11 (SHARING-WORKFLOWS + DAILY-USE), #9 (SYNC-BETWEEN-MACHINES), #13 (UPGRADING + TROUBLESHOOTING).
+1. **Issue #9** — Write `docs/SYNC-BETWEEN-MACHINES.md` (companion doc for these scripts).
+2. **Issue #12** — Create `upgrade.sh` script with backup safety.
+3. **Issue #19** — Define backup consistency model (cp vs sqlite3 .backup).
+4. Remaining docs: #11 (SHARING-WORKFLOWS + DAILY-USE), #13 (UPGRADING + TROUBLESHOOTING).
 
 ## Issue Tracker
-- #24: closing via this PR
-- #25: open, unblocked — Test 24 evidence added as comment
-- #30: open, blocks on #25
+- #8: closing via this PR
+- #9: open, unblocked — can now reference the delivered scripts
