@@ -118,6 +118,8 @@ docker compose exec app archon workflow list
 
 These are available even when `.archon/workflows/` is empty — they ship inside the Docker image. For details on how Archon resolves custom workflows alongside built-ins, see [docs/WORKFLOW-OVERLAY.md](WORKFLOW-OVERLAY.md).
 
+> **`archon workflow list` not available in Archon 0.3.6.** The `archon` binary is not in the container's PATH — the command exits with code 127 (confirmed in [`.claude/docs/smoke-tests.md`](../.claude/docs/smoke-tests.md) Test 30). Use the Web UI at `http://localhost:3000/workflows` to browse workflows that have been saved through the builder.
+
 ## Running a workflow from the CLI
 
 ```bash
@@ -276,4 +278,10 @@ Wait 20 seconds and retry `./scripts/health.sh`. The healthcheck has a `start_pe
 
 ### Workflow not found
 
-Run `docker compose exec app archon workflow list` to confirm the name. Name matching is fuzzy (suffix and substring), but the workflow must exist on disk or in the SQLite database. If a custom workflow is missing, confirm the YAML file is in `.archon/workflows/` and the container was restarted after the file was added.
+In Archon 0.3.6, `docker compose exec app archon workflow list` is unavailable — the `archon` binary is not in the container PATH (confirmed in [`.claude/docs/smoke-tests.md`](../.claude/docs/smoke-tests.md) Test 30). To check whether a workflow exists, use the Web UI at `http://localhost:3000/workflows` (for workflows with a SQLite record) or check the container filesystem directly:
+
+```bash
+docker compose exec app ls /.archon/.archon/workflows/
+```
+
+If a custom workflow is missing from that listing, confirm the YAML file is in `.archon/workflows/` on your host and the container was restarted after the file was added.

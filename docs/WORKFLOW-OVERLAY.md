@@ -83,7 +83,7 @@ touch .archon/workflows/my-workflow.yaml
 docker compose restart app
 ```
 
-**What you should see:** The workflow appears in the Archon UI and CLI within ~5 seconds of restart.
+**What you should see:** The YAML file is present in the container filesystem (bind-mount confirmed). However, in Archon 0.3.6 the workflow **does not appear in the Web UI** — the Workflows page reads from SQLite and Archon does not scan `/.archon/.archon/workflows/` at startup. The `archon` CLI binary is not in the container PATH in this version, so `archon workflow list` is unavailable. Confirmed in [`.claude/docs/smoke-tests.md`](../.claude/docs/smoke-tests.md) Test 30.
 
 ### 3. Claude Code with the Archon skill
 
@@ -110,7 +110,7 @@ Then restart the container:
 docker compose restart app
 ```
 
-**What you should see:** The bundled default no longer appears or executes; your override file takes its place in the UI and CLI.
+**What you should see:** The override file is present in the container filesystem and takes priority for workflow execution (the bundled default is shadowed). The override does not appear in the Web UI — the Workflows page reads from SQLite, not from YAML files on disk. Confirmed in [`.claude/docs/smoke-tests.md`](../.claude/docs/smoke-tests.md) Test 30.
 
 ## How to restore a default
 
@@ -124,7 +124,7 @@ docker compose restart app
 
 `git rm` stages the deletion and removes the file from disk. After the commit, teammates who run `git pull` followed by `docker compose restart app` will also see the default restored.
 
-**What you should see:** The bundled default reappears in the Archon UI and CLI after restart.
+**What you should see:** The override file is removed from the container filesystem and the bundled default is no longer suppressed for execution. The Web UI is unaffected by this change — it reads from SQLite, not from YAML files on disk.
 
 ## Git workflow after building in the UI
 
@@ -159,7 +159,7 @@ git commit -m "feat(workflow): add <name> workflow"
 git push
 ```
 
-**What you should see:** The push succeeds and teammates can `git pull` to receive the workflow, then `docker compose restart app` to load it.
+**What you should see:** The push succeeds and teammates can `git pull` to receive the YAML file. After `docker compose restart app`, the workflow is in the container filesystem. In Archon 0.3.6, it will not appear in the Web UI (reads from SQLite) and the `archon` CLI is unavailable — see [`.claude/docs/smoke-tests.md`](../.claude/docs/smoke-tests.md) Test 30. Verify delivery with `docker compose exec app ls /.archon/.archon/workflows/`.
 
 > **`description:` is required on every workflow YAML.** Archon's skill discovery system and the vscode-archon extension use this field to list available workflows. A workflow without `description:` may not appear in tool lists or the extension's UI.
 

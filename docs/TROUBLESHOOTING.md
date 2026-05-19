@@ -334,11 +334,16 @@ not appear in the CLI or Web UI.
 3. **Check the YAML has a `description:` field.** Open the file and verify the top-level keys
    include `description:`. Archon's workflow discovery system skips files without this field.
 
-4. **CLI vs. Web UI discrepancy:** If the workflow appears in
-   `docker compose exec app archon workflow list` but not in the Workflows Web UI, this is a
-   known gap tracked in issue #30. The CLI reads YAML files directly; the UI reads the SQLite
-   database. A container restart normally reconciles these — if it does not, the `description:`
-   field is the most common culprit.
+4. **CLI and Web UI do not list git-pulled workflows in Archon 0.3.6.** This is confirmed behavior
+   (see [`.claude/docs/smoke-tests.md`](../.claude/docs/smoke-tests.md) Test 30). The Web UI reads from
+   SQLite and does not scan YAML files at startup. The `archon` binary is not in the container PATH —
+   `archon workflow list` exits with code 127. Verify delivery with:
+
+   ```bash
+   docker compose exec app ls /.archon/.archon/workflows/
+   ```
+
+   The file being present in that listing confirms the bind-mount delivered it correctly.
 
 ---
 
