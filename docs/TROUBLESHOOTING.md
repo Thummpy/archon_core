@@ -171,6 +171,40 @@ Once healthy, re-run the backup script.
 
 ---
 
+## sqlite3 not found
+
+**Symptom:** `./scripts/backup.sh` (or any script that calls it) fails with:
+
+```
+✗ Required tool not found: sqlite3
+  macOS (pre-installed): brew install sqlite3
+  Ubuntu/WSL:            sudo apt install sqlite3
+```
+
+**Cause:** `backup.sh` uses `sqlite3`'s Online Backup API to create WAL-safe backups. `sqlite3`
+ships pre-installed on macOS but requires manual installation on Debian/Ubuntu and WSL.
+
+**Fix:**
+
+- **macOS:** `sqlite3` ships pre-installed. If missing, reinstall with:
+  ```bash
+  brew install sqlite3
+  ```
+- **Ubuntu / WSL:** Install with:
+  ```bash
+  sudo apt update && sudo apt install sqlite3
+  ```
+
+Verify the installation:
+
+```bash
+sqlite3 --version
+```
+
+Once installed, re-run the backup script.
+
+---
+
 ## Upgrade health check failed (exit code 2)
 
 **Symptom:** `./scripts/upgrade.sh` exits with code 2 and prints:

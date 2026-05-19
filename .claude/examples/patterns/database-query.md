@@ -30,7 +30,8 @@ TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 DEST="backups/archon-${TIMESTAMP}.db"
 
 mkdir -p backups
-cp "${ARCHON_DATA}/archon.db" "${DEST}"
+# WAL-safe: Online Backup API checkpoints WAL internally; consistent against a running Archon instance
+sqlite3 "${ARCHON_DATA}/archon.db" ".backup '${DEST}'"
 echo "✓ Backup: ${DEST}"
 ```
 

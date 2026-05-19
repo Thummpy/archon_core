@@ -1,33 +1,31 @@
-# Handoff — Issue #13: Write docs/UPGRADING.md and docs/TROUBLESHOOTING.md
+# Handoff — Issue #19: Define Backup Consistency Model
 
 ## Goal
 
-Create the final two documentation guides to complete the docs/ suite: UPGRADING.md for the version bump procedure and TROUBLESHOOTING.md as the central error resolution resource.
+Replace `cp`-based backup in `scripts/backup.sh` with `sqlite3 .backup` (SQLite Online Backup API) to produce WAL-safe backups regardless of container state. Add ADR documenting the decision.
 
 ## What Was Done
 
-- **Created** `docs/UPGRADING.md` (260 lines): prerequisites, version pinning model, why backup is mandatory (no-migration constraint + WAL caveat), step-by-step upgrade procedure with `upgrade.sh` (all 6 phases with expected output), exit code 1 vs. exit code 2 scenarios, and 5-step manual rollback with ordering rationale.
-- **Created** `docs/TROUBLESHOOTING.md` (350 lines): 11 symptom-first sections (Docker not running, container won't start, API health failing, OAuth expired, database not found, upgrade exit code 2, sync remote not configured, sync other errors, permission denied, workflow missing, bind mount empty). Ends with "Still stuck?" contact section — no self-referencing "Something went wrong?" link.
-- **Updated** `docs/SETUP.md` line 247: replaced "coming soon — issue #13" placeholder with a proper markdown link to UPGRADING.md matching the format of surrounding list items.
+- **`scripts/backup.sh`** — replaced `cp -p` with `sqlite3 "${SOURCE_DB}" ".backup '${dest}'"` in `perform_backup()`; updated `check_deps()` to check for `sqlite3` with platform-specific install hints (macOS / Ubuntu/WSL); updated `usage()` to remove the old WAL WARNING and describe WAL-safe behavior.
+- **`.claude/docs/adr/0001-backup-consistency-model.md`** — new ADR documenting context (Archon hardcodes WAL mode), decision (sqlite3 Online Backup API), consequences (adds sqlite3 dep, removes live-backup risk), and three rejected alternatives.
+- **`.claude/examples/patterns/database-query.md`** — backup pattern updated to `sqlite3 .backup` with a WHY comment explaining WAL safety.
+- **`docs/UPGRADING.md`** — WAL paragraph rewritten: backup.sh now handles WAL internally; container still stopped for schema migration safety. Phase 1 and Phase 2 expected-output narration updated to match.
+- **`docs/TROUBLESHOOTING.md`** — new "sqlite3 not found" section added (symptom matches `check_deps()` output exactly; platform-specific fix instructions).
 
 ## Key Decisions
 
-- **TROUBLESHOOTING.md has a minimal prerequisites section** despite the PRP not listing one, because docs-guides.md mandates "What you need before starting" for every doc in docs/. The section is lightweight (repo cloned, terminal in repo root) so it orients without gatekeeping.
-- **Upgrade procedure phases shown without explicit "What you should see" labels** — all 6 phases are output from a single `./scripts/upgrade.sh` command, so the expected output is presented as sequential console output under each phase heading. Rollback steps (separate user commands) do use the explicit label.
-- **Existing inline troubleshooting left in place** in DAILY-USE.md (lines 260-280) and SHARING-WORKFLOWS.md (lines 124-137) per PRP CRITICAL guidance — TROUBLESHOOTING.md is the comprehensive reference, inline hints stay for contextual quick-fixes.
+- **sqlite3 .backup syntax** — uses single-quote wrapping: `".backup '${dest}'"`. The sqlite3 dot-command parser handles quoted filenames, making paths with spaces safe. The PRP explicitly specified this form.
+- **Container stop rationale in docs** — changed from "WAL checkpoint safety" to "schema migration safety" throughout UPGRADING.md. Both are true; the new backup mechanism removes the WAL dependency, leaving schema safety as the sole remaining reason.
+- **upgrade.sh and sync-up.sh unchanged** — callers continue to stop the container first for their own reasons and capture backup.sh's stdout path. No caller changes required.
 
 ## Current State
 
-- All files written, reviewed, validated (4 passed, 0 failed, 2 skipped)
-- All 5 existing docs' TROUBLESHOOTING.md dead links now resolve
-- SETUP.md UPGRADING.md link now resolves
-- docs/ suite is complete: SETUP → DAILY-USE → SHARING-WORKFLOWS → SYNC-BETWEEN-MACHINES → UPGRADING → TROUBLESHOOTING + WORKFLOW-OVERLAY
+Issue #19 complete. Validation passed (shellcheck, docker compose config). PR created; branch auto-deletes on merge.
 
 ## Next Steps
 
-1. **Issue #19** — Define backup consistency model (cp vs sqlite3 .backup)
-2. **Issue #30** — Verify git-pull workflow sharing end-to-end (CLI vs UI discrepancy referenced in TROUBLESHOOTING.md)
+1. **Issue #30** — Verify git-pull workflow sharing end-to-end (CLI vs UI discrepancy)
 
 ## Issue Tracker
 
-- #13: closed by PR
+- #19: closed via PR (auto-closes on merge via `Closes #19` in PR body)

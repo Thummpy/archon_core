@@ -40,9 +40,11 @@ not optional and cannot be skipped.
 **Why the container must be stopped first:** SQLite uses a write-ahead log (WAL) — a staging area
 for recent writes that is only fully merged into the main database file when all connections close.
 
-`backup.sh` does not copy WAL sidecar files (`archon.db-wal`, `archon.db-shm`). Backing up while
-Archon is running may produce a copy missing recent writes. `upgrade.sh` stops the container
-before calling `backup.sh` specifically to prevent this.
+`backup.sh` uses `sqlite3`'s Online Backup API (`.backup` command), which handles WAL
+checkpointing internally and produces a consistent snapshot regardless of whether Archon is running.
+`upgrade.sh` still stops the container before backup, but for schema migration safety: a new
+Archon version may modify the database schema on first startup, and a clean stop ensures no partial
+write state persists before that migration runs.
 
 ## Upgrade procedure
 
@@ -84,14 +86,15 @@ The script runs six phases in order:
 ✓ Archon stopped
 ```
 
-Archon is stopped so all SQLite connections close and the WAL checkpoint completes before backup.
+Archon is stopped for schema migration safety — the new version may modify the database schema on
+first startup, and a clean stop ensures no partial write state before that migration runs.
 
 **Phase 2 — Backup the database**
 
 ```
 → Creating pre-upgrade backup...
 → Ensuring backup directory exists: /path/to/archon-setup/backups
-→ Copying database to /path/to/archon-setup/backups/archon-20241201-143022.db...
+→ Backing up database to /path/to/archon-setup/backups/archon-20241201-143022.db...
 ✓ Backup created: /path/to/archon-setup/backups/archon-20241201-143022.db
 ✓ Pre-upgrade backup complete: /path/to/archon-setup/backups/archon-20241201-143022.db
 ```
