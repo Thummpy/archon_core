@@ -12,12 +12,13 @@ usage() {
   cat <<EOF
 Usage: $(basename "$0") [--help]
 
-Copies ~/archon-data/archon.db to backups/archon-YYYYMMDD-HHMMSS.db (UTC timestamp).
+Backs up ~/archon-data/archon.db to backups/archon-YYYYMMDD-HHMMSS.db (UTC timestamp).
 
-WARNING: For a consistent backup of a running Archon instance, stop the container
-first: docker compose down. This script does not stop the container and does not
-copy WAL/SHM sidecar files. Callers such as upgrade.sh and sync-up.sh already
-run docker compose down before invoking this script.
+Uses sqlite3's Online Backup API (.backup command), which handles WAL checkpointing
+internally. The backup is consistent even against a running Archon instance — no need
+to stop the container first. Callers such as upgrade.sh and sync-up.sh stop the
+container before calling this script for other reasons (schema migration safety,
+sync consistency), not for backup consistency.
 
 Stdout contract:
   On success, prints the absolute path of the created backup to stdout.
@@ -25,15 +26,19 @@ Stdout contract:
 
 Exit codes:
   0 — backup created successfully
-  1 — failure (DB missing, copy failed, required tool not found)
+  1 — failure (DB missing, backup failed, required tool not found)
 EOF
 }
 
 check_deps() {
   local missing=0
-  for cmd in cp mkdir date; do
+  for cmd in sqlite3 mkdir date; do
     if ! command -v "$cmd" &>/dev/null; then
       echo "✗ Required tool not found: ${cmd}" >&2
+      case "${cmd}" in
+        sqlite3) echo "  macOS (pre-installed): brew install sqlite3" >&2
+                 echo "  Ubuntu/WSL:            sudo apt install sqlite3" >&2 ;;
+      esac
       missing=1
     fi
   done
@@ -61,9 +66,9 @@ perform_backup() {
   timestamp=$(date -u +%Y%m%d-%H%M%S)
   local dest="${BACKUP_DIR}/${BACKUP_PREFIX}-${timestamp}.db"
 
-  echo "→ Copying database to ${dest}..." >&2
-  if ! cp -p "${SOURCE_DB}" "${dest}"; then
-    echo "✗ Backup failed (cp returned non-zero)" >&2
+  echo "→ Backing up database to ${dest}..." >&2
+  if ! sqlite3 "${SOURCE_DB}" ".backup '${dest}'"; then
+    echo "✗ Backup failed (sqlite3 returned non-zero)" >&2
     exit 1
   fi
 
