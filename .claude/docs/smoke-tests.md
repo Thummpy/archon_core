@@ -213,3 +213,104 @@ Criterion-by-criterion against issue #24 acceptance criteria:
 **Status: pending** (issue #25)
 
 Verifies the `CLAUDE_CODE_OAUTH_TOKEN` lifetime when used inside the Archon container, and whether Archon or the container provides any auto-refresh mechanism before expiry.
+
+---
+
+### Test 30 — git-pull workflow sharing (hand-placed YAML)
+
+**Status: FAIL** (verified 2026-05-19, issue #30)
+
+**What is tested:** Whether a YAML file hand-placed in `.archon/workflows/` (simulating a `git pull` delivery) appears in (a) the Workflows Web UI page via `GET /api/workflows` and (b) the Archon CLI via `archon workflow list` after `docker compose restart app`. This closes the gap left by Test 24, which only tested a save that stalled mid-way through the UI write-back — not a fully hand-placed file.
+
+**Commands executed:**
+
+```bash
+# Run the verification script (requires a running Archon container)
+scripts/verify-workflow-sharing.sh
+
+# Equivalent manual steps
+# 1. Create block-style test YAML
+cat > .archon/workflows/verify-sharing-test.yaml <<'YAML'
+name: verify-sharing-test
+description: Temporary verification workflow — created by verify-workflow-sharing.sh and removed on exit.
+provider: claude
+model: sonnet
+nodes:
+  - id: verify-node
+    prompt: |
+      Placeholder node for bind-mount discovery test.
+YAML
+
+# 2. Restart container
+docker compose restart app && sleep 20
+./scripts/health.sh
+
+# 3. API probe (UI data source)
+curl -sf http://localhost:3000/api/workflows
+
+# 4. CLI probe (separate stdout/stderr)
+docker compose exec -T app archon workflow list 2>&1
+
+# 5. Bind-mount sanity check
+docker compose exec -T app ls /.archon/.archon/workflows/verify-sharing-test.yaml
+
+# 6. Cleanup
+rm -f .archon/workflows/verify-sharing-test.yaml
+docker compose restart app && sleep 20
+./scripts/health.sh
+```
+
+**Verbatim output:**
+
+```
+→ Checking prerequisites...
+  ✓ docker, curl, jq available
+→ Gating on container health before testing...
+  ✓ archon-app running and API healthy
+→ Creating test YAML: /Users/chriscaldwell/Projects/archon_core/.archon/workflows/verify-sharing-test.yaml
+  ✓ Test YAML written (block-style, model: sonnet)
+→ Restarting container to simulate git-pull workflow discovery...
+ Container archon-app  Restarting
+ Container archon-app  Started
+→ Waiting for API health (post-restart)...
+  ✓ API healthy (5s)
+→ Check 1 — API probe: GET http://localhost:3000/api/workflows
+  Response: {"workflows":[]}
+  ✗ 'verify-sharing-test' not found in API response
+    UI Workflows page reads from SQLite — hand-placed YAML is not scanned at startup
+→ Check 2 — CLI probe: archon workflow list (inside container)
+  stdout: OCI runtime exec failed: exec failed: unable to start container process: exec: "archon": executable file not found in $PATH: unknown
+  exit code: 127
+  ✗ CLI command unavailable (exit 127 — binary not found in container PATH)
+→ Check 3 — Bind-mount: /.archon/.archon/workflows/verify-sharing-test.yaml in container
+  ✓ File confirmed in container filesystem
+
+══════════════════════════════════════════════════════════════════
+ verify-workflow-sharing.sh — Archon 0.3.6 result
+══════════════════════════════════════════════════════════════════
+ API (UI data source): FAIL
+ CLI:                  UNAVAILABLE
+ Bind-mount:           PASS
+══════════════════════════════════════════════════════════════════
+ Classification: FAIL — hand-placed YAML not visible via API or CLI
+
+ Record this output verbatim in .claude/docs/smoke-tests.md (Test 30).
+
+→ Cleanup: removing test YAML...
+→ Cleanup: restarting container to restore pre-test state...
+→ Waiting for API health (cleanup)...
+  ✓ API healthy (5s)
+✓ Cleanup complete.
+```
+
+**Classification: FAIL** (verified 2026-05-19, Archon 0.3.6)
+
+Criterion-by-criterion:
+
+1. **API probe — hand-placed YAML appears in `/api/workflows`** — **FAIL**. Response is `{"workflows":[]}`. Archon's startup log (see Test 24) confirms no scan of `/.archon/.archon/workflows/` at boot — only the bundled defaults path is verified. The UI reads exclusively from SQLite. A file delivered by `git pull` does not populate the SQLite layer, so it never appears in the Web UI.
+
+2. **CLI probe — `archon workflow list` discovers the workflow** — **UNAVAILABLE**. The `archon` binary is not in the container's PATH. `docker compose exec app archon workflow list` exits with code 127 (`exec: "archon": executable file not found in $PATH`). The health.sh `check_workflows` function wraps this call in `2>/dev/null` and reports "unknown" — this is consistent. The CLI commands documented in `docs/DAILY-USE.md` are not functional in Archon 0.3.6.
+
+3. **Bind-mount sanity — YAML file visible in container filesystem** — **PASS**. `/.archon/.archon/workflows/verify-sharing-test.yaml` confirmed present inside the container. Consistent with Test 23.
+
+**Key structural finding:** In Archon 0.3.6, `git pull + docker compose restart app` delivers workflow YAML to the container filesystem (bind-mount PASS) but the file is not discoverable through any available interface: the Web UI reads from SQLite (no startup scan of user workflows), and the `archon` CLI binary does not exist in the container PATH. The git-based team-sharing model works for file delivery only — not for UI or CLI discoverability in this version. Documentation corrections are applied in `docs/WORKFLOW-OVERLAY.md`, `docs/SHARING-WORKFLOWS.md`, and `docs/DAILY-USE.md`.
