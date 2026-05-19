@@ -244,7 +244,8 @@ Finally, open `http://localhost:3000` in your browser to access the Archon web U
   see [`docs/DAILY-USE.md`](DAILY-USE.md).
 - **Sync data across machines** — use `rclone` and the sync scripts; see
   [`docs/SYNC-BETWEEN-MACHINES.md`](SYNC-BETWEEN-MACHINES.md).
-- **Upgrade the pinned version** — see `docs/UPGRADING.md` (coming soon — issue #13).
+- **Upgrade the pinned version** — version bump procedure with backup safety; see
+  [`docs/UPGRADING.md`](UPGRADING.md).
 
 ## Something went wrong?
 
