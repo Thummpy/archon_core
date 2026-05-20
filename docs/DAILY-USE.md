@@ -93,32 +93,36 @@ Errors appear as `[ERROR]` lines. If Archon fails to start, the container logs a
 
 ## Listing available workflows
 
-List every workflow available — Archon's 10 built-ins plus any custom workflows in `.archon/workflows/`:
+Browse available workflows in the Web UI at `http://localhost:3000/workflows`. In 0.3.12, this page shows both built-in workflows and any custom YAML files in `.archon/workflows/` — no CLI required.
 
-```bash
-docker compose exec app archon workflow list
-```
+> **`archon workflow list` not available.** The `archon` binary is not in the container's PATH by design — the upstream Dockerfile does not add it, so the command exits with code 127.
 
-`docker compose exec app` sends the command into the running container. Archon runs inside Docker, so all Archon CLI commands use this prefix.
+Archon's built-in workflows in 0.3.12 (verified 2026-05-20):
 
-**What you should see:** A table of workflow names and descriptions. Archon's built-in workflows:
-
-| Workflow | Description |
+| Workflow | Trigger / purpose |
 |---|---|
-| `archon-assist` | Answer questions about the codebase |
-| `archon-fix-github-issue` | Investigate and fix a GitHub issue |
-| `archon-idea-to-pr` | Turn a plain-language idea into a pull request |
-| `archon-plan-to-pr` | Turn a structured plan into a pull request |
-| `archon-feature-development` | End-to-end feature development |
-| `archon-smart-pr-review` | Focused, targeted PR review |
-| `archon-comprehensive-pr-review` | In-depth PR review with full context |
-| `archon-architect` | Architectural analysis and design recommendations |
-| `archon-ralph-dag` | Build a directed-acyclic graph of tasks |
-| `archon-resolve-conflicts` | Resolve git merge conflicts |
+| `archon-adversarial-dev` | Build a complete application from scratch using adversarial development |
+| `archon-architect` | Architectural sweep, complexity reduction, or system design |
+| `archon-assist` | General-purpose — use when no other workflow matches |
+| `archon-comprehensive-pr-review` | Comprehensive code review of a pull request |
+| `archon-create-issue` | Report a bug or problem as a GitHub issue |
+| `archon-feature-development` | Implement a feature from an existing plan |
+| `archon-fix-github-issue` | Fix, resolve, or implement a solution for a GitHub issue |
+| `archon-idea-to-pr` | Feature idea or description → end-to-end pull request |
+| `archon-interactive-prd` | Create a PRD through guided conversation |
+| `archon-issue-review-full` | Full fix + review pipeline for a GitHub issue |
+| `archon-piv-loop` | Guided Plan-Implement-Validate development loop |
+| `archon-plan-to-pr` | Existing implementation plan → execute as pull request |
+| `archon-ralph-dag` | Ralph implementation loop (directed acyclic graph) |
+| `archon-refactor-safely` | Refactor code safely with continuous validation |
+| `archon-remotion-generate` | Generate or modify a Remotion video composition |
+| `archon-resolve-conflicts` | Resolve merge conflicts in a pull request |
+| `archon-smart-pr-review` | Efficient PR review that adapts to PR size and complexity |
+| `archon-test-loop-dag` | Test loop DAG (triggered by explicit command) |
+| `archon-validate-pr` | Thorough PR validation testing both main branch and PR |
+| `archon-workflow-builder` | Create a new custom workflow for a project |
 
 These are available even when `.archon/workflows/` is empty — they ship inside the Docker image. For details on how Archon resolves custom workflows alongside built-ins, see [docs/WORKFLOW-OVERLAY.md](WORKFLOW-OVERLAY.md).
-
-> **`archon workflow list` not available.** The `archon` binary is not in the container's PATH by design — the upstream Dockerfile does not add it, so the command exits with code 127. Use the Web UI at `http://localhost:3000/workflows` to browse workflows that have been saved through the builder.
 
 ## Running a workflow from the CLI
 
@@ -278,7 +282,7 @@ Wait 20 seconds and retry `./scripts/health.sh`. The healthcheck has a `start_pe
 
 ### Workflow not found
 
-`docker compose exec app archon workflow list` is unavailable — the `archon` binary is not in the container PATH by design (the upstream Dockerfile does not add it). To check whether a workflow exists, use the Web UI at `http://localhost:3000/workflows` (for workflows with a SQLite record) or check the container filesystem directly:
+`docker compose exec app archon workflow list` is unavailable — the `archon` binary is not in the container PATH by design (the upstream Dockerfile does not add it). To check whether a workflow exists, use the Web UI at `http://localhost:3000/workflows` — in 0.3.12 this page shows all available workflows including YAML files in `.archon/workflows/`. You can also check the container filesystem directly:
 
 ```bash
 docker compose exec app ls /.archon/workflows/
