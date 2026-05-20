@@ -1,62 +1,102 @@
-# archon-setup
+# archon_core
 
-Wrapper repository for a version-pinned local Archon installation with custom workflows, OAuth authentication, portable data via host-path volumes, and team-friendly documentation for developers with minimal Docker experience.
+Docker-based deployment of [Archon](https://archon.diy) with version pinning, custom workflows, operational scripts, and team-friendly documentation.
 
-## Why This Exists
+## What Is Archon?
 
-Archon is a rapidly evolving open-source harness builder (TypeScript/Bun) that publishes Docker images to GHCR. Installing from source requires Bun, Node.js, and OS-specific dependency resolution — a process that has taken team members a full day. This wrapper repo provides one-command Docker-based setup, pins a specific version, owns custom workflows in version control, and enables portable data across machines.
+Archon is a workflow engine for AI coding agents. You define multi-step development workflows in YAML — plan, implement, review, open PR — and Archon orchestrates an AI assistant (Claude) to execute them against your code repositories. Interact via the **web UI**, **CLI**, or **chat adapters** (Slack, GitHub, Telegram).
 
-## Tech Stack
+Upstream docs: [archon.diy](https://archon.diy)
 
-- **Docker Compose v2** — container orchestration
-- **Bash** — operational scripts (setup, sync, upgrade, health)
-- **YAML** — Docker Compose config + Archon workflow definitions
-- **SQLite** — Archon's default database (zero config)
-- **rclone** — cross-machine data sync (optional)
+## What This Repo Adds
 
-## Getting Started
+Archon's native install requires Bun, Node.js, and OS-specific dependencies. This repo wraps Archon in Docker Compose with:
+
+- **Version pinning** — a specific GHCR image tag, not `latest`
+- **Host-path volumes** — all data in `~/archon-data/`, inspectable and portable
+- **Custom workflows** — version-controlled YAML in `.archon/workflows/`
+- **Operational scripts** — backup, sync, upgrade, health check
+- **Team docs** — step-by-step guides assuming zero Docker experience
+
+No application code lives here — only configuration, workflows, scripts, and documentation.
+
+## Quick Start
 
 ```bash
-git clone git@github.com:atyeti-inc/archon-setup.git
-cd archon-setup
-cp .env.example .env
-./scripts/setup-oauth.sh
+git clone https://github.com/Thummpy/archon_core.git
+cd archon_core
+./scripts/setup-oauth.sh        # generates OAuth token, writes .env
 mkdir -p ~/archon-data
 docker compose pull
 docker compose up -d
 ```
 
-See [docs/SETUP.md](docs/SETUP.md) for detailed step-by-step instructions (including Docker installation for first-time users).
+Wait ~20 seconds, then verify:
 
-## Architecture
+```bash
+./scripts/health.sh
+```
 
-Wrapper repo pattern — no application code, only configuration, workflows, scripts, and docs. Archon runs as a pre-built Docker container from GHCR. All data lives in `~/archon-data/` on the host, making it inspectable, syncable, and independent of the container.
+Open the web UI at **http://localhost:3000**.
 
-See [.claude/docs/architecture.md](.claude/docs/architecture.md) for diagrams and component details.
+First time? See [docs/SETUP.md](docs/SETUP.md) for the full walkthrough (including Docker installation).
 
-## Roadmap
+## Using Archon (v0.3.12)
 
-| Phase | Focus | Goal |
-|-------|-------|------|
-| 1 | Vertical slice | Clone → 4 commands → working Archon with PEV workflow |
-| 2 | Sync & portability | rclone setup, sync scripts, work on any machine |
-| 3 | Team workflow library | Standard Atyeti modalities (ML, data, web, docs, infra) |
-| 4 | Operational hardening | Upgrade scripts, troubleshooting, optional Postgres |
+The web UI at **http://localhost:3000** is the primary interface. The `archon` CLI binary is not in the container's PATH by design (the upstream Dockerfile does not add it), so most `docker compose exec` CLI commands are unavailable.
 
-## Development Workflow
+1. **Open the web UI** — `http://localhost:3000` (or `http://localhost:<PORT>` if you changed it in `.env`)
+2. **Add a project** — paste a repository URL in the web UI. Archon clones it into `~/archon-data/` on the host.
+3. **Run a workflow** — type a natural-language request in the chat. Archon selects the matching workflow and streams progress.
+4. **Build custom workflows** — use the visual builder at `/workflows/builder`. Saved workflows write YAML to `.archon/workflows/` (bind-mounted from this repo).
 
-| Command | Purpose |
-|---------|---------|
-| `/research` | Iterative pre-plan research to resolve unknowns |
-| `/plan-feature` | Research codebase and generate an implementation plan |
-| `/execute` | Implement the plan step-by-step with validation |
-| `/review` | Self-review changes against standards |
-| `/commit-close` | Validate, commit, push, create PR, and close issue |
-| `/handoff` | Save session state when context is heavy but task is not done |
-| `/compact` | Compress context for long-running sessions |
+**Known issue:** the workflow builder stalls at ~89% if the OAuth token in `.env` has expired. Run `./scripts/setup-oauth.sh` to refresh, then retry.
+
+For the full usage guide (logs, restart procedures, troubleshooting): [docs/DAILY-USE.md](docs/DAILY-USE.md)
+
+## Operations
+
+All scripts live in `scripts/` and are idempotent — safe to re-run.
+
+| Script | Purpose | When to use |
+|--------|---------|-------------|
+| `setup-oauth.sh` | Generate OAuth token, write to `.env` | First-time setup or token refresh |
+| `health.sh` | Check container + API + workflow count | After startup or to diagnose issues |
+| `backup.sh` | WAL-safe SQLite backup to `backups/` | Before upgrades, periodically |
+| `upgrade.sh` | Backup DB, bump image tag, pull, restart, validate | When updating Archon version |
+| `sync-up.sh` | Push `~/archon-data/` to rclone remote | Before switching machines |
+| `sync-down.sh` | Pull from rclone remote to `~/archon-data/` | After switching machines |
+
+## Documentation
+
+| Guide | Covers |
+|-------|--------|
+| [SETUP.md](docs/SETUP.md) | First-time install: Docker, OAuth, first `up` |
+| [DAILY-USE.md](docs/DAILY-USE.md) | Start/stop, web UI, CLI workflows, logs, troubleshooting tips |
+| [SHARING-WORKFLOWS.md](docs/SHARING-WORKFLOWS.md) | How `git pull` + restart delivers new workflows to the team |
+| [WORKFLOW-OVERLAY.md](docs/WORKFLOW-OVERLAY.md) | How custom workflows coexist with Archon's built-ins |
+| [SYNC-BETWEEN-MACHINES.md](docs/SYNC-BETWEEN-MACHINES.md) | rclone setup for portable `~/archon-data/` |
+| [UPGRADING.md](docs/UPGRADING.md) | Version bump procedure with backup safety |
+| [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common errors and fixes |
+
+## Developing This Repo
+
+This section covers contributing to the **wrapper repo itself** (scripts, docs, workflows), not using Archon.
+
+Development uses Claude Code with a structured lifecycle per GitHub issue:
+
+| Step | Command | Purpose |
+|------|---------|---------|
+| 0 | `/research` | *(optional)* Investigate unknowns before planning |
+| 1 | `/plan-feature` | Write an implementation plan |
+| 2 | `/execute` | Implement the plan step-by-step |
+| 3 | `/review` | Self-review against coding standards |
+| 4 | `/commit-close` | Commit, push, create PR, close issue |
+
+Branching: GitHub Flow — feature branches off `main`, squash merge via PR.
 
 ## Team
 
-| Role | GitHub Handle |
-|------|---------------|
-| Lead | @Thummpy |
+| Role | GitHub |
+|------|--------|
+| Lead | [@Thummpy](https://github.com/Thummpy) |

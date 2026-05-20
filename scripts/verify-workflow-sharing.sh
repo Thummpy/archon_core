@@ -218,7 +218,7 @@ probe_cli() {
 }
 
 probe_mount() {
-  local container_path="/.archon/.archon/workflows/${TEST_WORKFLOW_NAME}.yaml"
+  local container_path="/.archon/workflows/${TEST_WORKFLOW_NAME}.yaml"
   echo "→ Check 3 — Bind-mount: ${container_path} in container"
 
   if docker compose -f "${PROJECT_DIR}/docker-compose.yml" exec -T app \
@@ -234,7 +234,7 @@ probe_mount() {
 print_summary() {
   echo ""
   echo "══════════════════════════════════════════════════════════════════"
-  echo " verify-workflow-sharing.sh — Archon 0.3.6 result"
+  echo " verify-workflow-sharing.sh — Archon 0.3.12 result"
   echo "══════════════════════════════════════════════════════════════════"
   echo " API (UI data source): ${API_RESULT}"
   echo " CLI:                  ${CLI_RESULT}"

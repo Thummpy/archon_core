@@ -16,7 +16,7 @@
 `docker-compose.yml` contains one line that determines which version of Archon runs:
 
 ```yaml
-image: ghcr.io/coleam00/archon:0.3.6
+image: ghcr.io/coleam00/archon:0.3.12
 ```
 
 This tag is the single source of truth. When you run `docker compose up -d`, Docker uses exactly
@@ -61,10 +61,10 @@ Replace `0.5.0` with your target tag.
 **What you should see:**
 
 ```
-→ Upgrading Archon: 0.3.6 → 0.5.0
+→ Upgrading Archon: 0.3.12 → 0.5.0
   [dry-run] Would stop Archon (archon-app)
   [dry-run] Would back up ~/archon-data/archon.db
-  [dry-run] Would update docker-compose.yml: 0.3.6 → 0.5.0
+  [dry-run] Would update docker-compose.yml: 0.3.12 → 0.5.0
   [dry-run] Would pull ghcr.io/coleam00/archon:0.5.0
   [dry-run] Would restart Archon and validate health via scripts/health.sh
 ```
@@ -136,7 +136,7 @@ and may take a minute depending on your connection.
 → Checking API health (http://localhost:3000/api/health)...
 ✓ Archon API: OK
 
-✓ Upgrade complete: 0.3.6 → 0.5.0
+✓ Upgrade complete: 0.3.12 → 0.5.0
   Backup: /path/to/archon-setup/backups/archon-20241201-143022.db
 ```
 
@@ -225,7 +225,7 @@ image: ghcr.io/coleam00/archon:0.5.0
 Change it back to the previous version (the version before your upgrade attempt):
 
 ```yaml
-image: ghcr.io/coleam00/archon:0.3.6
+image: ghcr.io/coleam00/archon:0.3.12
 ```
 
 Save the file.

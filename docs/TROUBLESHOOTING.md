@@ -334,13 +334,14 @@ not appear in the CLI or Web UI.
 3. **Check the YAML has a `description:` field.** Open the file and verify the top-level keys
    include `description:`. Archon's workflow discovery system skips files without this field.
 
-4. **CLI and Web UI do not list git-pulled workflows in Archon 0.3.6.** This is confirmed behavior
-   (see [`.claude/docs/smoke-tests.md`](../.claude/docs/smoke-tests.md) Test 30). The Web UI reads from
-   SQLite and does not scan YAML files at startup. The `archon` binary is not in the container PATH —
-   `archon workflow list` exits with code 127. Verify delivery with:
+4. **CLI and Web UI may not list git-pulled workflows.** The Web UI reads from
+   SQLite and does not scan YAML files at startup; whether 0.3.12 changed this is pending
+   re-verification (see [`.claude/docs/smoke-tests.md`](../.claude/docs/smoke-tests.md) Test 30). The
+   `archon` binary is not in the container PATH by design — `archon workflow list` exits with code
+   127. Verify delivery with:
 
    ```bash
-   docker compose exec app ls /.archon/.archon/workflows/
+   docker compose exec app ls /.archon/workflows/
    ```
 
    The file being present in that listing confirms the bind-mount delivered it correctly.
@@ -355,7 +356,7 @@ not appear in the CLI or Web UI.
 **Cause:** The host directory may be empty, or files were added to the host after the container
 started without a restart. Archon resolves its config paths relative to its home directory
 (`/.archon`), which maps to `~/archon-data/` on the host — but the workflows and commands are
-separate bind mounts (`/.archon/.archon/workflows`), not subdirectories of that volume.
+separate bind mounts (`/.archon/workflows`), not subdirectories of that volume.
 
 **Fix:**
 
@@ -374,7 +375,7 @@ separate bind mounts (`/.archon/.archon/workflows`), not subdirectories of that 
 3. Verify the files are visible inside the container:
 
    ```bash
-   docker compose exec app ls /.archon/.archon/workflows/
+   docker compose exec app ls /.archon/workflows/
    ```
 
 ---

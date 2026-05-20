@@ -118,7 +118,7 @@ docker compose exec app archon workflow list
 
 These are available even when `.archon/workflows/` is empty — they ship inside the Docker image. For details on how Archon resolves custom workflows alongside built-ins, see [docs/WORKFLOW-OVERLAY.md](WORKFLOW-OVERLAY.md).
 
-> **`archon workflow list` not available in Archon 0.3.6.** The `archon` binary is not in the container's PATH — the command exits with code 127 (confirmed in [`.claude/docs/smoke-tests.md`](../.claude/docs/smoke-tests.md) Test 30). Use the Web UI at `http://localhost:3000/workflows` to browse workflows that have been saved through the builder.
+> **`archon workflow list` not available.** The `archon` binary is not in the container's PATH by design — the upstream Dockerfile does not add it, so the command exits with code 127. Use the Web UI at `http://localhost:3000/workflows` to browse workflows that have been saved through the builder.
 
 ## Running a workflow from the CLI
 
@@ -278,10 +278,10 @@ Wait 20 seconds and retry `./scripts/health.sh`. The healthcheck has a `start_pe
 
 ### Workflow not found
 
-In Archon 0.3.6, `docker compose exec app archon workflow list` is unavailable — the `archon` binary is not in the container PATH (confirmed in [`.claude/docs/smoke-tests.md`](../.claude/docs/smoke-tests.md) Test 30). To check whether a workflow exists, use the Web UI at `http://localhost:3000/workflows` (for workflows with a SQLite record) or check the container filesystem directly:
+`docker compose exec app archon workflow list` is unavailable — the `archon` binary is not in the container PATH by design (the upstream Dockerfile does not add it). To check whether a workflow exists, use the Web UI at `http://localhost:3000/workflows` (for workflows with a SQLite record) or check the container filesystem directly:
 
 ```bash
-docker compose exec app ls /.archon/.archon/workflows/
+docker compose exec app ls /.archon/workflows/
 ```
 
 If a custom workflow is missing from that listing, confirm the YAML file is in `.archon/workflows/` on your host and the container was restarted after the file was added.
