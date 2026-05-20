@@ -20,7 +20,7 @@ docker compose restart app
 
 Archon reads `.archon/workflows/` through a bind mount — the directory on your machine is directly visible inside the container. After restart, new YAML files are present in the container filesystem. See [docs/WORKFLOW-OVERLAY.md](WORKFLOW-OVERLAY.md) for the full overlay resolution model.
 
-> **YAML files are not discoverable after `git pull` in Archon 0.3.6.** After `git pull + docker compose restart app`, the workflow YAML is delivered to the container filesystem (bind-mount confirmed) but is not listed by any available interface: the Web UI reads from SQLite and does not scan user YAML files at startup; the `archon` CLI binary is not in the container PATH (`archon workflow list` exits with code 127). Confirmed in [`.claude/docs/smoke-tests.md`](../.claude/docs/smoke-tests.md) Test 30.
+> **YAML files delivered via `git pull` may not be discoverable immediately.** After `git pull + docker compose restart app`, the workflow YAML is delivered to the container filesystem (bind-mount confirmed) but may not be listed by all interfaces: the Web UI reads from SQLite; whether 0.3.12 scans user YAML files at startup is pending re-verification (see [`.claude/docs/smoke-tests.md`](../.claude/docs/smoke-tests.md) Test 30). The `archon` CLI binary is not in the container PATH by design (`archon workflow list` exits with code 127).
 
 ## Getting workflows from your team
 
@@ -51,12 +51,12 @@ The restart takes about 5 seconds. Archon reads the updated overlay on startup.
 3. Confirm the workflow was delivered to the container:
 
 ```bash
-docker compose exec app ls /.archon/.archon/workflows/
+docker compose exec app ls /.archon/workflows/
 ```
 
 **What you should see:** The new workflow YAML filename appears in the directory listing. This confirms the bind-mount delivered the file.
 
-> **The Web UI and CLI will not list the workflow in Archon 0.3.6.** The Workflows page reads from SQLite (not YAML files), and the `archon` CLI binary is not in the container PATH — `archon workflow list` exits with code 127. Container filesystem listing is the only way to verify delivery. Confirmed in [`.claude/docs/smoke-tests.md`](../.claude/docs/smoke-tests.md) Test 30.
+> **The Web UI and CLI may not list the workflow immediately.** The Workflows page reads from SQLite (not YAML files); whether 0.3.12 scans at startup is pending re-verification. The `archon` CLI binary is not in the container PATH by design — `archon workflow list` exits with code 127. Container filesystem listing is the most reliable way to verify delivery. See [`.claude/docs/smoke-tests.md`](../.claude/docs/smoke-tests.md) Test 30.
 
 ## Contributing a workflow
 
@@ -71,7 +71,7 @@ git commit -m "feat(workflow): add <name> workflow"
 git push
 ```
 
-**What you should see:** The push succeeds. Teammates who run `git pull` followed by `docker compose restart app` will have the YAML file delivered to the container filesystem. In Archon 0.3.6, the workflow is not discoverable via the Web UI or CLI — see [`.claude/docs/smoke-tests.md`](../.claude/docs/smoke-tests.md) Test 30 for the confirmed finding.
+**What you should see:** The push succeeds. Teammates who run `git pull` followed by `docker compose restart app` will have the YAML file delivered to the container filesystem. The Web UI reads from SQLite and the `archon` CLI binary is not in the container PATH by design — see [`.claude/docs/smoke-tests.md`](../.claude/docs/smoke-tests.md) Test 30 for the confirmed finding; re-verification against 0.3.12 is pending.
 
 > **`description:` is required on every workflow YAML.** Archon's skill discovery system uses this field. A workflow without `description:` may not appear in tool lists or the Web UI.
 
@@ -123,7 +123,7 @@ See [docs/TROUBLESHOOTING.md](TROUBLESHOOTING.md) for common errors and fixes.
 
 ### Workflow not appearing after git pull + restart
 
-In Archon 0.3.6, a workflow YAML delivered by `git pull` will not appear in the Web UI (reads from SQLite) or via `archon workflow list` (binary not in container PATH). This is confirmed behavior — see [`.claude/docs/smoke-tests.md`](../.claude/docs/smoke-tests.md) Test 30. Container filesystem listing (`docker compose exec app ls /.archon/.archon/workflows/`) is the only way to verify the file was delivered.
+A workflow YAML delivered by `git pull` may not appear in the Web UI (reads from SQLite) or via `archon workflow list` (binary not in container PATH by design). Whether 0.3.12 scans at startup is pending re-verification — see [`.claude/docs/smoke-tests.md`](../.claude/docs/smoke-tests.md) Test 30. Container filesystem listing (`docker compose exec app ls /.archon/workflows/`) is the most reliable way to verify the file was delivered.
 
 If the YAML file is not present in the container filesystem at all, check:
 
