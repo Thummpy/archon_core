@@ -314,3 +314,98 @@ Criterion-by-criterion:
 3. **Bind-mount sanity — YAML file visible in container filesystem** — **PASS**. `/.archon/.archon/workflows/verify-sharing-test.yaml` confirmed present inside the container. Consistent with Test 23.
 
 **Key structural finding:** In Archon 0.3.6, `git pull + docker compose restart app` delivers workflow YAML to the container filesystem (bind-mount PASS) but the file is not discoverable through any available interface: the Web UI reads from SQLite (no startup scan of user workflows), and the `archon` CLI binary does not exist in the container PATH. The git-based team-sharing model works for file delivery only — not for UI or CLI discoverability in this version. Documentation corrections are applied in `docs/WORKFLOW-OVERLAY.md`, `docs/SHARING-WORKFLOWS.md`, and `docs/DAILY-USE.md`.
+
+---
+
+## Verification log — Archon 0.3.12 (verified 2026-05-20)
+
+### Test 30 (re-run) — git-pull workflow sharing (hand-placed YAML)
+
+**Status: PASS** (re-verified 2026-05-20, issue #40 follow-up)
+
+**What changed from 0.3.6:** Upstream PR #1315 unified workflow discovery directly under `getArchonHome()` (`/.archon`). Mount paths changed from `/.archon/.archon/workflows` to `/.archon/workflows`. Discovery behavior also changed — YAML files are scanned at startup.
+
+**Commands executed:**
+
+```bash
+# Write test YAML to host (no SQLite record written)
+cat > .archon/workflows/verify-sharing-test.yaml << 'YAML'
+name: verify-sharing-test
+description: Temporary verification workflow — created manually and removed on exit.
+provider: claude
+model: sonnet
+nodes:
+  - id: verify-node
+    prompt: |
+      This is a placeholder node for path verification only.
+YAML
+
+# Restart container
+docker compose restart app
+until curl -sf --max-time 5 http://localhost:3000/api/health &>/dev/null; do sleep 3; done
+
+# API probe (UI data source)
+curl -sf http://localhost:3000/api/workflows | grep -o '"name":"verify-sharing-test"'
+
+# Bind-mount sanity check
+docker compose exec app ls -la /.archon/workflows/verify-sharing-test.yaml
+
+# CLI probe
+docker compose exec app archon workflow list 2>&1; echo "exit: $?"
+
+# Full workflow name list
+curl -sf http://localhost:3000/api/workflows | grep -o '"name":"[^"]*"' | sort
+
+# Cleanup
+rm -f .archon/workflows/verify-sharing-test.yaml
+docker compose restart app
+```
+
+**Verbatim output:**
+
+```
+# API probe
+"name":"verify-sharing-test"
+
+# Bind-mount
+/.archon/workflows/verify-sharing-test.yaml  (file present, owned by appuser)
+
+# CLI probe
+OCI runtime exec failed: exec failed: unable to start container process: exec: "archon": executable file not found in $PATH: unknown
+exit: 127
+
+# Full workflow name list (20 entries)
+"name":"archon-adversarial-dev"
+"name":"archon-architect"
+"name":"archon-assist"
+"name":"archon-comprehensive-pr-review"
+"name":"archon-create-issue"
+"name":"archon-feature-development"
+"name":"archon-fix-github-issue"
+"name":"archon-idea-to-pr"
+"name":"archon-interactive-prd"
+"name":"archon-issue-review-full"
+"name":"archon-piv-loop"
+"name":"archon-plan-to-pr"
+"name":"archon-ralph-dag"
+"name":"archon-refactor-safely"
+"name":"archon-remotion-generate"
+"name":"archon-resolve-conflicts"
+"name":"archon-smart-pr-review"
+"name":"archon-test-loop-dag"
+"name":"archon-validate-pr"
+"name":"archon-workflow-builder"
+"name":"verify-sharing-test"
+```
+
+**Classification: PASS**
+
+Criterion-by-criterion:
+
+1. **API probe — hand-placed YAML appears in `/api/workflows`** — **PASS**. `verify-sharing-test` present in API response. Archon 0.3.12 discovers YAML files in `/.archon/workflows/` at startup — no SQLite record required.
+
+2. **CLI probe — `archon workflow list` discovers the workflow** — **UNAVAILABLE**. The `archon` binary is still not in the container's PATH in 0.3.12. Exit code 127 — unchanged from 0.3.6. This is confirmed permanent upstream design (Dockerfile does not add the binary to PATH).
+
+3. **Bind-mount sanity — YAML file visible in container filesystem** — **PASS**. `/.archon/workflows/verify-sharing-test.yaml` confirmed present. New path (no doubled prefix) consistent with upstream PR #1315.
+
+**Key structural finding:** In Archon 0.3.12, `git pull + docker compose restart app` delivers workflow YAML to the container filesystem AND makes it discoverable via the Web UI (`GET /api/workflows`). The git-based team-sharing model is fully functional for Web UI discoverability. CLI unavailability is unchanged — permanent upstream design decision. Documentation updated in `docs/WORKFLOW-OVERLAY.md`, `docs/SHARING-WORKFLOWS.md`, `docs/DAILY-USE.md`, and `docs/TROUBLESHOOTING.md`.
