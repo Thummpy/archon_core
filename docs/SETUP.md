@@ -224,9 +224,7 @@ visible from the host:
 ls .archon/workflows/
 ```
 
-**What you should see:** At least `atyeti-pev.yaml` listed. If the directory appears empty,
-the bind mount may not have taken effect — see
-[`docs/TROUBLESHOOTING.md`](TROUBLESHOOTING.md).
+**What you should see:** The directory may contain only `.gitkeep` if no custom workflows have been added yet — this is expected. The 20 built-in Archon workflows ship inside the Docker image and are always available without any files in this directory. If the command returns an error (no such directory or permission denied), the bind mount may not have taken effect — see [`docs/TROUBLESHOOTING.md`](TROUBLESHOOTING.md).
 
 Finally, open `http://localhost:3000` in your browser to access the Archon web UI.
 

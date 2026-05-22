@@ -27,8 +27,7 @@ archon-setup/
 ├── .archon/
 │   ├── config.yaml             # Archon configuration overrides
 │   ├── workflows/              # Custom workflow YAML files (shared via git)
-│   │   ├── atyeti-pev.yaml     # Standard Plan-Execute-Validate workflow
-│   │   └── ...
+│   │   └── ...                 # Team-specific workflows (use distinct names from archon-* built-ins)
 │   └── commands/               # Custom command Markdown files (shared via git)
 │       ├── plan.md
 │       ├── execute.md
@@ -168,7 +167,7 @@ GitHub Issues with labels: `ops`, `workflow`, `docs`, `upgrade`. GitHub Flow: fe
 - **Shell functions:** `lower_snake_case` (e.g., `check_docker`, `run_backup`)
 - **Shell variables (local):** `lower_snake_case`
 - **Environment variables / constants:** `UPPER_SNAKE_CASE` (e.g., `CLAUDE_CODE_OAUTH_TOKEN`, `RCLONE_REMOTE`)
-- **YAML files:** lowercase-with-hyphens (e.g., `atyeti-pev.yaml`, `docker-compose.yml`)
+- **YAML files:** lowercase-with-hyphens (e.g., `my-workflow.yaml`, `docker-compose.yml`)
 - **Markdown doc files:** `UPPER-CASE.md` for top-level guides (e.g., `SETUP.md`, `DAILY-USE.md`)
 - **Docker Compose services:** lowercase-with-hyphens (e.g., `archon-app`, `archon-postgres`)
 - **Directories:** lowercase-with-hyphens (e.g., `archon-data`, `archon-setup`)

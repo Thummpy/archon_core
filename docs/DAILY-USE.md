@@ -124,86 +124,48 @@ Archon's built-in workflows in 0.3.12 (verified 2026-05-20):
 
 These are available even when `.archon/workflows/` is empty — they ship inside the Docker image. For details on how Archon resolves custom workflows alongside built-ins, see [docs/WORKFLOW-OVERLAY.md](WORKFLOW-OVERLAY.md).
 
-## Running a workflow from the CLI
+## Running a workflow
 
-```bash
-docker compose exec app archon workflow run <name> "<message>"
-```
-
-Examples:
-
-```bash
-# Ask a question about the codebase
-docker compose exec app archon workflow run archon-assist "What does the orchestrator do?"
-
-# Fix a GitHub issue with an isolated worktree branch
-docker compose exec app archon workflow run archon-fix-github-issue --branch fix/login-crash "#142"
-```
-
-Archon streams AI reasoning to the terminal as it runs. Use `--quiet` to suppress streaming output or `--verbose` for tool-level events.
-
-Key flags:
-
-| Flag | Description |
-|---|---|
-| `--branch <name>` | Create an isolated git worktree on this branch (default behavior: runs in isolated worktree) |
-| `--no-worktree` | Run directly in the live checkout instead of an isolated worktree |
-| `--verbose` | Stream tool-level events (file reads, writes, shell commands) |
-| `--quiet` | Suppress streaming output; show only the final result |
-| `--resume` | Resume an interrupted run, skipping already-completed nodes |
-
-> **Worktree isolation is on by default.** Workflows run in isolated git worktrees at `~/.archon/workspaces/` inside the container. This keeps experiments off your main branch. Use `--no-worktree` only when you want the workflow to modify your live working directory.
-
-Workflow name matching is fuzzy: exact → case-insensitive → suffix → substring. For example, `archon workflow run assist` resolves to `archon-assist`.
-
-## Running a workflow from the Web UI
+Workflow execution requires the Web UI — the `archon` CLI binary is not in the container PATH by design (the upstream Dockerfile does not add it), so `archon workflow run` exits with code 127.
 
 Open `http://localhost:3000` in your browser.
 
-> If you changed the `PORT` variable in `.env`, use that port number: `http://localhost:<PORT>`.
+> If you changed the `PORT` variable in `.env`, use that port number instead: `http://localhost:<PORT>`.
 
-The Web UI provides a chat-style interface for working with Archon. Key pages:
+**How to run a workflow:**
 
-- **`/workflows`** — lists workflows that have a SQLite record (see note in [Listing available workflows](#listing-available-workflows))
+1. Open `http://localhost:3000` in your browser.
+2. Navigate to the **Workflows** page (sidebar or `/workflows`).
+3. Click the workflow you want to run — for example, `archon-assist` for general tasks or `archon-fix-github-issue` for GitHub issue work.
+4. Type your request or task description in the chat input and press **Run** (or **Enter**).
+
+**What you should see:** Archon streams its reasoning and tool calls in real time as the workflow progresses. The final result appears when the workflow completes. Workflows that create pull requests print the PR URL in the output.
+
+Key pages in the Web UI:
+
+- **`/workflows`** — lists all available workflows (built-in + any custom YAML files in `.archon/workflows/`)
 - **`/workflows/builder`** — create or edit a workflow using the visual builder
 - **`+ New Workflow`** button on the Workflows page — shortcut to the builder
 
 ## Checking workflow status
 
-Show all currently running workflow runs:
+All active workflow runs are visible in the Web UI at `http://localhost:3000`. Click a run to see its current status, live output, and any pending approval gates. Resume, approve, and reject operations are also handled in the Web UI — the `archon workflow resume/approve/reject` CLI commands are not available in the container.
 
-```bash
-docker compose exec app archon workflow status
-```
-
-**What you should see:** A table of active runs with run IDs, workflow names, and status. Empty output means nothing is currently running.
-
-To resume a run that was interrupted:
-
-```bash
-docker compose exec app archon workflow resume <run-id>
-```
-
-To approve or reject a workflow at an approval gate:
-
-```bash
-docker compose exec app archon workflow approve <run-id>
-docker compose exec app archon workflow reject <run-id>
-```
-
-For container-level logs when a run is missing from `status`:
+For container-level logs — useful when a run is not appearing in the Web UI or you want the raw output stream:
 
 ```bash
 docker compose logs -f app
 ```
 
+**What you should see:** Each line is prefixed with `archon-app  |`. Running workflows emit reasoning and tool-call lines in real time. Press `Ctrl+C` to stop streaming. Remove `-f` to print existing logs and exit immediately.
+
 ## Viewing results
 
-CLI runs stream output to the terminal in real time. The final result prints when the workflow completes.
+Workflow output streams in the Web UI in real time. The final result appears when the workflow completes.
 
 Multi-step workflows pass output between steps using artifact files (for example, `investigation.md` or `implementation.md`). These are stored inside the workflow's worktree directory under `~/archon-data/` on your host.
 
-Workflows that create pull requests print the PR URL on completion:
+Workflows that create pull requests show the PR URL in the output on completion:
 
 ```
 ✓ Pull request created: https://github.com/<org>/<repo>/pull/<number>
@@ -211,34 +173,46 @@ Workflows that create pull requests print the PR URL on completion:
 
 Archon stores all workflow state in `~/archon-data/archon.db` (SQLite). Active worktrees live under `~/archon-data/`.
 
-To list active worktrees or clean up stale ones:
+To inspect active worktrees inside the container:
 
 ```bash
-docker compose exec app archon isolation list
-docker compose exec app archon isolation cleanup
+docker compose exec app ls /.archon/workspaces/
 ```
+
+**What you should see:** A list of workspace directory names, one per active workflow run. Each directory is an isolated git worktree. Check the Web UI for active run status before removing anything manually.
 
 ## Validating your setup
 
-Run Archon's built-in diagnostic:
+Run the health check script as your primary diagnostic:
 
 ```bash
-docker compose exec app archon doctor
+./scripts/health.sh
 ```
-
-`archon doctor` checks: binary spawn, authentication, database connectivity, workspace writability, and bundled defaults.
 
 **What you should see:**
 
 ```
-✓ binary spawn
-✓ authentication
-✓ database
-✓ workspace write
-✓ bundled defaults
+archon-app: running (healthy) | Archon API: OK | Workflows loaded: 20
 ```
 
-Any `✗` line indicates a specific failure. An authentication failure usually means the OAuth token in `.env` is expired — re-run `./scripts/setup-oauth.sh` to refresh it.
+The script checks three things: the container is running, the `/api/health` endpoint responds, and the workflow count (informational). If any gate fails, the script explains what to fix. See [docs/TROUBLESHOOTING.md](TROUBLESHOOTING.md) for detailed error recovery.
+
+> **Advanced — internal health checks:** For low-level diagnostics (database connectivity, workspace writability, bundled defaults), use Bun to invoke the CLI source directly inside the container:
+>
+> ```bash
+> docker compose exec -T app bun /app/packages/cli/src/cli.ts doctor
+> ```
+>
+> **What you should see:**
+> ```
+> ✓ binary spawn
+> ✓ authentication
+> ✓ database
+> ✓ workspace write
+> ✓ bundled defaults
+> ```
+>
+> Any `✗` line indicates a specific failure. An authentication failure usually means the OAuth token in `.env` is expired — re-run `./scripts/setup-oauth.sh` to refresh it. This uses Bun (the container's runtime) to call the CLI source — the `archon` binary is not in the container PATH by design.
 
 ## Restarting after configuration changes
 
@@ -282,10 +256,14 @@ Wait 20 seconds and retry `./scripts/health.sh`. The healthcheck has a `start_pe
 
 ### Workflow not found
 
-`docker compose exec app archon workflow list` is unavailable — the `archon` binary is not in the container PATH by design (the upstream Dockerfile does not add it). To check whether a workflow exists, use the Web UI at `http://localhost:3000/workflows` — in 0.3.12 this page shows all available workflows including YAML files in `.archon/workflows/`. You can also check the container filesystem directly:
+Open `http://localhost:3000/workflows` — in 0.3.12, this page shows all available workflows including built-ins and any custom YAML files in `.archon/workflows/`. To confirm the file reached the container filesystem:
 
 ```bash
 docker compose exec app ls /.archon/workflows/
 ```
 
-If a custom workflow is missing from that listing, confirm the YAML file is in `.archon/workflows/` on your host and the container was restarted after the file was added.
+If a custom workflow is missing, confirm the YAML file is in `.archon/workflows/` on your host and that you restarted the container after adding it:
+
+```bash
+docker compose restart app
+```
