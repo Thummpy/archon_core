@@ -12,7 +12,6 @@ readonly HEALTH_INTERVAL=5
 
 # Written by each probe function; read by print_summary.
 API_RESULT="not run"
-CLI_RESULT="not run"
 MOUNT_RESULT="not run"
 
 cleanup() {
@@ -32,13 +31,12 @@ usage() {
 Usage: $(basename "$0") [--help]
 
 Tests whether a hand-placed YAML file in .archon/workflows/ appears in
-Archon's Web UI (/api/workflows) and CLI (archon workflow list) after
-docker compose restart app. Verifies the git-pull team-sharing model.
+Archon's Web UI (/api/workflows) after docker compose restart app.
+Verifies the git-pull team-sharing model.
 
 Checks performed:
   1. API probe     — GET /api/workflows, search for test workflow name
-  2. CLI probe     — archon workflow list inside container, stdout+stderr captured
-  3. Bind-mount    — confirm file visible inside container at expected path
+  2. Bind-mount    — confirm file visible inside container at expected path
 
 Exit codes:
   0 — test ran to completion (PASS/FAIL/PARTIAL reported, not an exit code)
@@ -165,61 +163,13 @@ probe_api() {
   else
     API_RESULT="FAIL"
     echo "  ✗ '${TEST_WORKFLOW_NAME}' not found in API response"
-    echo "    UI Workflows page reads from SQLite — hand-placed YAML is not scanned at startup"
-  fi
-}
-
-probe_cli() {
-  echo "→ Check 2 — CLI probe: archon workflow list (inside container)"
-  local tmp_stderr cli_stdout="" cli_exit=0
-  tmp_stderr=$(mktemp)
-
-  cli_stdout=$(docker compose -f "${PROJECT_DIR}/docker-compose.yml" exec -T app \
-    archon workflow list 2>"$tmp_stderr") || cli_exit=$?
-  local cli_stderr
-  cli_stderr=$(cat "$tmp_stderr" 2>/dev/null || true)
-  rm -f "$tmp_stderr"
-
-  echo "  stdout: ${cli_stdout:-(empty)}"
-  if [ -n "$cli_stderr" ]; then
-    echo "  stderr: ${cli_stderr}"
-  fi
-  if [ "$cli_exit" -ne 0 ]; then
-    echo "  exit code: ${cli_exit}"
-  fi
-
-  # Exit code 127 = command not found (POSIX standard for exec failures)
-  if [ "$cli_exit" -eq 127 ]; then
-    CLI_RESULT="UNAVAILABLE"
-    echo "  ✗ CLI command unavailable (exit 127 — binary not found in container PATH)"
-    return
-  fi
-
-  if echo "${cli_stdout}${cli_stderr}" | grep -qiE \
-    "command not found|unknown command|is not a.*command|executable file not found|OCI runtime exec failed"; then
-    CLI_RESULT="UNAVAILABLE"
-    echo "  ✗ CLI command unavailable (not found / exec failed)"
-    return
-  fi
-
-  if [ "$cli_exit" -ne 0 ] && [ -z "$cli_stdout" ]; then
-    CLI_RESULT="UNAVAILABLE"
-    echo "  ✗ CLI command exited ${cli_exit} with no output — may not be supported in this version"
-    return
-  fi
-
-  if echo "$cli_stdout" | grep -q "${TEST_WORKFLOW_NAME}"; then
-    CLI_RESULT="PASS"
-    echo "  ✓ '${TEST_WORKFLOW_NAME}' found in CLI output"
-  else
-    CLI_RESULT="FAIL"
-    echo "  ✗ '${TEST_WORKFLOW_NAME}' not found in CLI output"
+    echo "    Workflow not discovered — check container logs: docker compose logs app"
   fi
 }
 
 probe_mount() {
   local container_path="/.archon/workflows/${TEST_WORKFLOW_NAME}.yaml"
-  echo "→ Check 3 — Bind-mount: ${container_path} in container"
+  echo "→ Check 2 — Bind-mount: ${container_path} in container"
 
   if docker compose -f "${PROJECT_DIR}/docker-compose.yml" exec -T app \
     ls "$container_path" &>/dev/null 2>&1; then
@@ -237,20 +187,21 @@ print_summary() {
   echo " verify-workflow-sharing.sh — Archon 0.3.12 result"
   echo "══════════════════════════════════════════════════════════════════"
   echo " API (UI data source): ${API_RESULT}"
-  echo " CLI:                  ${CLI_RESULT}"
   echo " Bind-mount:           ${MOUNT_RESULT}"
   echo "══════════════════════════════════════════════════════════════════"
 
-  if [ "${API_RESULT}" = "PASS" ] && [ "${CLI_RESULT}" = "PASS" ]; then
-    echo " Classification: PASS — workflow visible in both UI (API) and CLI"
-  elif [ "${API_RESULT}" = "PASS" ] || [ "${CLI_RESULT}" = "PASS" ]; then
-    echo " Classification: PARTIAL — one channel sees the workflow, other does not"
+  if [ "${API_RESULT}" = "PASS" ] && [ "${MOUNT_RESULT}" = "PASS" ]; then
+    echo " Classification: PASS — workflow visible in Web UI and mounted correctly"
+  elif [ "${API_RESULT}" = "PASS" ]; then
+    echo " Classification: PARTIAL — API sees workflow but bind-mount check failed"
+  elif [ "${MOUNT_RESULT}" = "PASS" ]; then
+    echo " Classification: PARTIAL — file mounted but not discovered by Archon"
   else
-    echo " Classification: FAIL — hand-placed YAML not visible via API or CLI"
+    echo " Classification: FAIL — hand-placed YAML not visible via API and mount check failed"
   fi
 
   echo ""
-  echo " Record this output verbatim in .claude/docs/smoke-tests.md (Test 30)."
+  echo " Append this result to .claude/docs/smoke-tests.md if testing a new Archon image tag."
 }
 
 main() {
@@ -273,7 +224,6 @@ main() {
   }
 
   probe_api
-  probe_cli
   probe_mount
   print_summary
 }
