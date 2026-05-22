@@ -334,11 +334,10 @@ not appear in the CLI or Web UI.
 3. **Check the YAML has a `description:` field.** Open the file and verify the top-level keys
    include `description:`. Archon's workflow discovery system skips files without this field.
 
-4. **CLI and Web UI may not list git-pulled workflows.** The Web UI reads from
-   SQLite and does not scan YAML files at startup; whether 0.3.12 changed this is pending
-   re-verification (see [`.claude/docs/smoke-tests.md`](../.claude/docs/smoke-tests.md) Test 30). The
-   `archon` binary is not in the container PATH by design — `archon workflow list` exits with code
-   127. Verify delivery with:
+4. **In 0.3.12, the workflow should appear in the Web UI after restart.** Archon
+   discovers YAML files at startup (confirmed — see [`.claude/docs/smoke-tests.md`](../.claude/docs/smoke-tests.md) Test 30). Open `http://localhost:3000/workflows`
+   to confirm. The `archon` CLI binary is not in the container PATH by design — `archon workflow
+   list` exits with code 127. You can also verify filesystem delivery with:
 
    ```bash
    docker compose exec app ls /.archon/workflows/

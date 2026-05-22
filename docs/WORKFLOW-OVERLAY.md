@@ -37,7 +37,7 @@ Config is single-source: /.archon/config.yaml (rw). No overlay — host copy is 
 
 **This document describes behavior at image tag `ghcr.io/coleam00/archon:0.3.12`.** Overlay precedence, restart requirements, and command discovery are version-specific. After a tag bump in `docker-compose.yml`, review the Archon release notes to confirm the contract is unchanged.
 
-> Verified against `0.3.6` on 2026-04-23 — see [`.claude/docs/smoke-tests.md`](../.claude/docs/smoke-tests.md) (Test 23: scan paths — PASS; Test 24: UI write-back — PARTIAL). Re-verification against `0.3.12` pending.
+> Verified against `0.3.6` on 2026-04-23 (Tests 23, 24, 30) and `0.3.12` on 2026-05-20 (Test 30) — see [`.claude/docs/smoke-tests.md`](../.claude/docs/smoke-tests.md).
 
 ## Three ways to create or modify a workflow
 
@@ -55,7 +55,7 @@ You should see the new file listed as untracked under `.archon/workflows/`.
 
 > **Caveat — the save requires a working Claude API connection.** Archon makes an outbound call to the Claude API as part of the save process (model validation or workflow compilation). If that call hangs — for example, because `CLAUDE_CODE_OAUTH_TOKEN` is expired or not usable by Archon — the save stalls at ~89%. In this state, the YAML file is written to disk (and visible via `git status`) but the SQLite record is not written, so the workflow does not appear in Archon's Workflows UI page. If your save stalls, check your token first (see issue #25) and re-save after refreshing it.
 
-> **UI listing reads from SQLite, not YAML files.** Archon's Workflows page (`/workflows`) reads from its database, not from YAML files in `/.archon/workflows/`. A YAML file being present on disk does not guarantee the workflow appears in the UI — the database record (written on a complete save) is the authoritative source for the UI listing. A `docker compose restart app` after a complete save is sufficient for the workflow to persist across restarts; whether Archon scans `/.archon/workflows/` at startup in 0.3.12 is pending re-verification — see `.claude/docs/smoke-tests.md` Test 24.
+> **In 0.3.12, YAML files appear in the Web UI after restart.** Archon discovers YAML files in `/.archon/workflows/` at startup — a file written to disk appears in the Workflows Web UI after `docker compose restart app` (confirmed in `.claude/docs/smoke-tests.md` Test 30). If a builder save stalls at ~89% (OAuth issue), the YAML is still written to disk — a restart will surface it in the Web UI even without a complete save.
 
 After a successful save, stage and commit the YAML file to share it with the team:
 
@@ -81,7 +81,7 @@ touch .archon/workflows/my-workflow.yaml
 docker compose restart app
 ```
 
-**What you should see:** The YAML file is present in the container filesystem (bind-mount confirmed). However, the workflow **may not appear in the Web UI** — the Workflows page reads from SQLite; whether Archon scans `/.archon/workflows/` at startup in 0.3.12 is pending re-verification (see [`.claude/docs/smoke-tests.md`](../.claude/docs/smoke-tests.md) Test 30). The `archon` CLI binary is not in the container PATH by design (the upstream Dockerfile does not add it), so `archon workflow list` is unavailable.
+**What you should see:** The YAML file is present in the container filesystem (bind-mount confirmed), and the workflow **appears in the Workflows Web UI** at `http://localhost:3000/workflows`. In 0.3.12, Archon discovers YAML files at startup — confirmed in [`.claude/docs/smoke-tests.md`](../.claude/docs/smoke-tests.md) Test 30. The `archon` CLI binary is not in the container PATH by design (the upstream Dockerfile does not add it).
 
 ### 3. Claude Code with the Archon skill
 
@@ -108,7 +108,7 @@ Then restart the container:
 docker compose restart app
 ```
 
-**What you should see:** The override file is present in the container filesystem and takes priority for workflow execution (the bundled default is shadowed). The override does not appear in the Web UI — the Workflows page reads from SQLite, not from YAML files on disk. Confirmed in [`.claude/docs/smoke-tests.md`](../.claude/docs/smoke-tests.md) Test 30.
+**What you should see:** The override file is present in the container filesystem and takes priority for workflow execution (the bundled default is shadowed). In 0.3.12, the stub also appears in the Workflows Web UI — Archon discovers YAML files at startup (see [`.claude/docs/smoke-tests.md`](../.claude/docs/smoke-tests.md) Test 30).
 
 ## How to restore a default
 
@@ -122,7 +122,7 @@ docker compose restart app
 
 `git rm` stages the deletion and removes the file from disk. After the commit, teammates who run `git pull` followed by `docker compose restart app` will also see the default restored.
 
-**What you should see:** The override file is removed from the container filesystem and the bundled default is no longer suppressed for execution. The Web UI is unaffected by this change — it reads from SQLite, not from YAML files on disk.
+**What you should see:** The override file is removed from the container filesystem and the bundled default is no longer suppressed for execution. In 0.3.12, the stub entry also disappears from the Workflows Web UI after restart — Archon only discovers YAML files that exist on disk at startup.
 
 ## Git workflow after building in the UI
 
@@ -157,7 +157,7 @@ git commit -m "feat(workflow): add <name> workflow"
 git push
 ```
 
-**What you should see:** The push succeeds and teammates can `git pull` to receive the YAML file. After `docker compose restart app`, the workflow is in the container filesystem. The Web UI reads from SQLite — whether 0.3.12 scans `/.archon/workflows/` at startup is pending re-verification (see [`.claude/docs/smoke-tests.md`](../.claude/docs/smoke-tests.md) Test 30). The `archon` CLI binary is not in the container PATH by design. Verify delivery with `docker compose exec app ls /.archon/workflows/`.
+**What you should see:** The push succeeds and teammates can `git pull` to receive the YAML file. After `docker compose restart app`, the workflow is in the container filesystem and **appears in the Workflows Web UI** — in 0.3.12 Archon discovers YAML files at startup (see [`.claude/docs/smoke-tests.md`](../.claude/docs/smoke-tests.md) Test 30). The `archon` CLI binary is not in the container PATH by design. Verify delivery with `docker compose exec app ls /.archon/workflows/`.
 
 > **`description:` is required on every workflow YAML.** Archon's skill discovery system and the vscode-archon extension use this field to list available workflows. A workflow without `description:` may not appear in tool lists or the extension's UI.
 
