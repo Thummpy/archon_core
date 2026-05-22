@@ -89,7 +89,7 @@ git commit -m "feat(workflow): add <name> workflow"
 git push
 ```
 
-> **Save stalling at ~89%?** The OAuth token in `.env` is expired. The YAML file is written to disk but the SQLite record is not written — the workflow appears in `git status` but not in the Workflows Web UI. Refresh the token by running `./scripts/setup-oauth.sh`, then retry the save. See [Something went wrong?](#something-went-wrong) for details.
+> **Save stalling at ~89%?** The OAuth token in `.env` is expired. The YAML file is written to disk but the SQLite record is not written — in 0.3.12, the YAML on disk is still discoverable: `docker compose restart app` surfaces the workflow in the Workflows Web UI. Refresh the token by running `./scripts/setup-oauth.sh`, then retry the save to write the complete SQLite record. See [Something went wrong?](#something-went-wrong) for details.
 
 ## Filename override behavior
 
@@ -133,4 +133,4 @@ If the YAML file is not present in the container filesystem at all, check:
 
 ### Save stalling at ~89% in the workflow builder
 
-The OAuth token in `.env` is expired. The YAML file is written to disk (visible in `git status`) but the SQLite record is not written, so the workflow does not appear in the Workflows UI page. Run `./scripts/setup-oauth.sh` to refresh the token, then retry the save in the builder.
+The OAuth token in `.env` is expired. The YAML file is written to disk (visible in `git status`) but the SQLite record is not written — in 0.3.12, the YAML on disk is still discoverable: `docker compose restart app` surfaces the workflow in the Workflows Web UI. Run `./scripts/setup-oauth.sh` to refresh the token, then retry the save in the builder to write the complete SQLite record.

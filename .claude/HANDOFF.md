@@ -1,28 +1,33 @@
-# Handoff — Issue #43: Fix CLI Unavailability, Health Workflow Count, and Built-in Audit
+# Handoff — Issue #45: Fix stale SQLite discovery claim in docs
 
 ## Goal
-Three concrete gaps prevented this Archon wrapper repo from being usable in practice: (1) all `archon` CLI workflow commands in docs exit 127 (binary not in container PATH), (2) `scripts/health.sh` reported "Workflows loaded: unknown" by calling the same broken CLI, and (3) `atyeti-pev.yaml` was referenced in multiple files but does not exist.
+
+Three documentation files carried a 0.3.6-era claim that a workflow builder save stalling at ~89% leaves the workflow invisible in the Web UI until the token is fixed and the save retried. In 0.3.12, YAML files are discovered at startup — a `docker compose restart app` surfaces the workflow immediately without a SQLite record.
 
 ## What Was Done
 
-- **`scripts/health.sh`**: Replaced `check_workflows` — removed `archon workflow list` pipeline, added `curl GET /api/workflows` + `grep -o '"name":' | wc -l` to count workflows. Added `WORKFLOWS_ENDPOINT` named constant. Now outputs `Workflows loaded: 20`.
-- **`docs/DAILY-USE.md`**: Rewrote five sections — merged "Running a workflow from the CLI/Web UI" into one Web UI-only "Running a workflow" section (step-by-step, "what you should see"); replaced broken `archon workflow status/resume/approve/reject` with Web UI + `docker compose logs`; replaced `archon isolation list/cleanup` with `docker compose exec app ls /.archon/workspaces/`; replaced `archon doctor` with `./scripts/health.sh` as primary + `bun` invocation as advanced option; streamlined "Workflow not found" troubleshooting.
-- **`docs/SHARING-WORKFLOWS.md`**: Fixed stale line-116 "what you should see" (was: `archon workflow list`; now: Web UI at `/workflows`).
-- **`docs/TROUBLESHOOTING.md`**: Removed redundant CLI sentence from "Workflow not appearing" step 4.
-- **`docs/SETUP.md`**: Removed `atyeti-pev.yaml` reference; updated "what you should see" to explain empty `.archon/workflows/` is expected.
-- **`docs/WORKFLOW-OVERLAY.md`**: Added "Built-in workflow audit" section — `archon-piv-loop` is PIV superset (no custom PEV workflow needed), `archon-workflow-builder` complements the DLC.
-- **`.claude/CLAUDE.md`**: Removed `atyeti-pev.yaml` from project structure diagram and naming convention example.
-- **`.claude/docs/smoke-tests.md`**: Appended Test 31 — CLI invocation via full path and `bun` (PARTIAL: diagnostics work, execution fails on missing Claude Code SDK native binary).
+Updated five occurrences across three docs:
+
+| File | Location | Change |
+|------|----------|--------|
+| `docs/DAILY-USE.md` | Line 242 + fix guidance | Stale claim removed; restart-discovery language added; fix guidance opens with restart-first workaround |
+| `docs/SHARING-WORKFLOWS.md` | Line 92 blockquote | Stale "not in Web UI" claim → restart-discovery language |
+| `docs/SHARING-WORKFLOWS.md` | Line 136 subsection | Same replacement |
+| `docs/TROUBLESHOOTING.md` | Cause paragraph | Stale "does not appear" claim → restart-discovery language |
+| `docs/TROUBLESHOOTING.md` | Fix section opening | Added restart-first step (review WARN: Cause said restart helps, Fix didn't echo it) |
+
+`docs/WORKFLOW-OVERLAY.md` intentionally untouched — already correct, served as reference language.
 
 ## Key Decisions
 
-- **Web UI for execution, `bun` for diagnostics**: The CLI limitation is not a PATH fix — the Claude Code SDK native binary is absent from the container image. This is permanent upstream design (no fork planned). Diagnostic commands (`doctor`, `workflow list`) work via `bun /app/packages/cli/src/cli.ts` and are documented as an advanced option only.
-- **`/api/workflows` for health count**: No `jq` dependency; `grep -o '"name":' | wc -l` is sufficient.
-- **No custom `atyeti-pev.yaml`**: `archon-piv-loop` is a functional superset. `.archon/workflows/` remains empty (`.gitkeep` only) until team-specific workflows are authored.
+- **Restart-first ordering**: Fix guidance leads with `docker compose restart app` (immediate relief) before `setup-oauth.sh + retry` (permanent fix). Mirrors the DAILY-USE.md pattern.
+- **TROUBLESHOOTING.md Fix section**: PRP scoped to Cause only, but review WARN found the Fix section asymmetric with the updated Cause. One-line addition front-loads the restart — consistent with all other updated locations. Issue #46 is unrelated (script bug), so fix was included here.
+- **WORKFLOW-OVERLAY.md out of scope**: PRP CRITICAL — lines 56-58 intentionally hold both old caveat and 0.3.12 correction side-by-side as a layered explanation.
 
 ## Current State
 
-PR open on `feat/issue-43-fix-resolve-cli-unavailability-broke`, targeting main. Issue #43 closes on merge. All validation passes (`shellcheck`, `validate.sh`). Container running on 0.3.12; `./scripts/health.sh` outputs `Workflows loaded: 20`.
+All changes committed and pushed. PR open on `feat/issue-45-fix-stale-sqlite-discovery-claim`. Issue #45 closes on merge. Validation passes (4/4, 2 skipped).
 
-## Issue Tracker
-- Issue #43: closes on PR merge
+## Next Steps
+
+- **Issue #46** (open): Update `scripts/verify-workflow-sharing.sh` for 0.3.12. Three bugs: classification always yields PARTIAL (API=PASS + CLI=UNAVAILABLE), stale error message in `probe_api()`, stale "Record in Test 30" instruction. Recommendation: remove CLI probe, rewrite classification as API+mount only.
