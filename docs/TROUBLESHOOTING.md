@@ -336,8 +336,7 @@ not appear in the CLI or Web UI.
 
 4. **In 0.3.12, the workflow should appear in the Web UI after restart.** Archon
    discovers YAML files at startup (confirmed — see [`.claude/docs/smoke-tests.md`](../.claude/docs/smoke-tests.md) Test 30). Open `http://localhost:3000/workflows`
-   to confirm. The `archon` CLI binary is not in the container PATH by design — `archon workflow
-   list` exits with code 127. You can also verify filesystem delivery with:
+   to confirm. You can also verify filesystem delivery with:
 
    ```bash
    docker compose exec app ls /.archon/workflows/

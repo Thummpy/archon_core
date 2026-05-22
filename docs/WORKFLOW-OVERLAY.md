@@ -167,6 +167,22 @@ The read-write mount gives the Archon container write authority over `.archon/wo
 
 No secrets belong in `.archon/workflows/` or `.archon/commands/`. Both directories are git-tracked. The OAuth token lives in `.env`, which is `.gitignore`'d and injected via `env_file:` in `docker-compose.yml`.
 
+## Built-in workflow audit (verified 2026-05-22)
+
+Archon 0.3.12 ships 20 built-in workflows. Two were audited against this team's development workflow:
+
+### `archon-piv-loop`
+
+A 5-phase interactive loop: EXPLORE → PLAN → IMPLEMENT → VALIDATE → FINALIZE. This is a superset of the Plan-Execute-Validate concept — it adds an upfront exploration phase and an explicit finalization phase. **No custom Plan-Execute-Validate workflow is needed.** Use `archon-piv-loop` from the Web UI for full-cycle feature development.
+
+### `archon-workflow-builder`
+
+Creates a custom workflow YAML file via AI-guided intent extraction — you describe what you want a workflow to do, and Archon generates the YAML. This **complements** the DLC authoring flow (which covers general feature development in Claude Code) rather than replacing it. Use `archon-workflow-builder` when you want to create a new reusable Archon workflow for a specific project pattern.
+
+### Decision: `.archon/workflows/` reserved for team-specific workflows
+
+No custom workflows duplicate the 20 built-ins. `.archon/workflows/` is reserved for team-specific workflows that extend the built-ins — workflows that encode team conventions, project-specific patterns, or custom automation not covered by the defaults. Use **distinct filenames** (not starting with `archon-`) to avoid shadowing built-ins.
+
 ## Something went wrong?
 
 See [`docs/TROUBLESHOOTING.md`](TROUBLESHOOTING.md) for common errors and fixes.

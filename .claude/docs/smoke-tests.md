@@ -409,3 +409,112 @@ Criterion-by-criterion:
 3. **Bind-mount sanity — YAML file visible in container filesystem** — **PASS**. `/.archon/workflows/verify-sharing-test.yaml` confirmed present. New path (no doubled prefix) consistent with upstream PR #1315.
 
 **Key structural finding:** In Archon 0.3.12, `git pull + docker compose restart app` delivers workflow YAML to the container filesystem AND makes it discoverable via the Web UI (`GET /api/workflows`). The git-based team-sharing model is fully functional for Web UI discoverability. CLI unavailability is unchanged — permanent upstream design decision. Documentation updated in `docs/WORKFLOW-OVERLAY.md`, `docs/SHARING-WORKFLOWS.md`, `docs/DAILY-USE.md`, and `docs/TROUBLESHOOTING.md`.
+
+---
+
+## Verification log — Archon 0.3.12 (supplemental, verified 2026-05-22)
+
+### Test 31 — CLI invocation via full path and bun
+
+**Status: PARTIAL** (verified 2026-05-22, issue #43)
+
+**What is tested:** Whether the `archon` CLI is invocable via its node_modules path or via `bun` directly, and which commands work vs. fail. This resolves the ambiguity about what "CLI unavailable" means in practice — specifically whether it is a PATH issue (fixable) or a deeper binary/SDK issue.
+
+**Commands executed:**
+
+```bash
+# Probe 1: check if archon binary exists at node_modules path
+docker compose exec -T app ls /app/node_modules/.bin/archon
+
+# Probe 2: verify bun is available and confirm CLI source path
+docker compose exec -T app which bun
+docker compose exec -T app ls /app/packages/cli/src/cli.ts
+
+# Probe 3: read-only commands via bun invocation
+docker compose exec -T app bun /app/packages/cli/src/cli.ts version
+docker compose exec -T app bun /app/packages/cli/src/cli.ts doctor
+docker compose exec -T app bun /app/packages/cli/src/cli.ts workflow list
+docker compose exec -T app bun /app/packages/cli/src/cli.ts workflow status
+docker compose exec -T app bun /app/packages/cli/src/cli.ts isolation list
+
+# Probe 4: workflow execution as root (Docker exec default)
+docker compose exec -T app bun /app/packages/cli/src/cli.ts workflow run archon-assist "test"
+
+# Probe 5: workflow execution as appuser (bypasses root check)
+docker compose exec -T --user appuser app bun /app/packages/cli/src/cli.ts workflow run archon-assist "test"
+```
+
+**Verbatim output:**
+
+```
+# Probe 1: node_modules path
+ls: /app/node_modules/.bin/archon: No such file or directory
+
+# Probe 2: runtime and source path
+/usr/local/bin/bun
+/app/packages/cli/src/cli.ts
+
+# Probe 3: read-only commands
+
+# bun ... version
+0.3.12
+
+# bun ... doctor
+✓ binary spawn
+✓ authentication
+✓ database
+✓ workspace write
+✓ bundled defaults
+
+# bun ... workflow list (20 entries, excerpt)
+archon-adversarial-dev
+archon-architect
+archon-assist
+archon-comprehensive-pr-review
+archon-create-issue
+archon-feature-development
+archon-fix-github-issue
+archon-idea-to-pr
+archon-interactive-prd
+archon-issue-review-full
+archon-piv-loop
+archon-plan-to-pr
+archon-ralph-dag
+archon-refactor-safely
+archon-remotion-generate
+archon-resolve-conflicts
+archon-smart-pr-review
+archon-test-loop-dag
+archon-validate-pr
+archon-workflow-builder
+
+# bun ... workflow status
+(empty — no active runs)
+
+# bun ... isolation list
+(empty — no active worktrees)
+
+# Probe 4: workflow run as root
+Error: Running Archon as root is not supported. Re-run with a non-root user.
+
+# Probe 5: workflow run as appuser
+error: Cannot find module '@anthropic-ai/claude-agent-sdk-linux-x64-musl/claude'
+Require stack:
+- /app/node_modules/@anthropic-ai/claude-agent-sdk/dist/index.js
+```
+
+**Classification: PARTIAL**
+
+Criterion-by-criterion:
+
+1. **`/app/node_modules/.bin/archon` exists** — **FAIL**. The path does not exist. Prior documentation referencing this path was incorrect. The CLI is not installed as a node_modules binary.
+
+2. **`bun /app/packages/cli/src/cli.ts` invocable** — **PASS**. The CLI source is at this path and is executable via Bun (the container's runtime). All read-only commands work correctly.
+
+3. **Read-only commands (`version`, `doctor`, `workflow list`, `workflow status`, `isolation list`)** — **PASS**. All exit with code 0 and produce expected output. `workflow list` returns all 20 built-in workflows.
+
+4. **Workflow execution (`workflow run`) as root** — **FAIL**. Archon rejects execution when running as root (Docker exec default). Root is not supported for workflow execution.
+
+5. **Workflow execution (`workflow run`) as appuser** — **FAIL**. Root check bypassed, but execution fails immediately on a missing Claude Code SDK native binary (`@anthropic-ai/claude-agent-sdk-linux-x64-musl/claude`). This binary is not present in the container image — it is a container image limitation, not a PATH or permissions issue.
+
+**Key structural finding:** The CLI limitation is not a PATH issue — it is a missing Claude Code SDK native binary in the container image. Diagnostic commands (`doctor`, `workflow list`, `status`, `isolation list`) all work via `bun /app/packages/cli/src/cli.ts`. Workflow execution requires the SDK native binary, which is absent from the image. The Web UI is the only workflow execution interface in the Docker deployment. This is a permanent upstream design (no fork of the image is planned — see `.claude/PLANNING.md`). Documentation in `docs/DAILY-USE.md` updated: Web UI for execution; `bun` invocation documented as an advanced troubleshooting option for diagnostic commands.

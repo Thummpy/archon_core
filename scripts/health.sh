@@ -5,6 +5,7 @@ SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 PROJECT_DIR=$(cd "${SCRIPT_DIR}/.." && pwd)
 readonly DEFAULT_PORT=3000
 readonly HEALTH_ENDPOINT="/api/health"
+readonly WORKFLOWS_ENDPOINT="/api/workflows"
 readonly CONTAINER_NAME="archon-app"
 
 # Global state written by each check function; read by main() for the summary line.
@@ -97,16 +98,18 @@ check_api() {
 
 # Informational only — workflow count is never a health gate.
 check_workflows() {
+  local port="${PORT:-${DEFAULT_PORT}}"
+  local url="http://localhost:${port}${WORKFLOWS_ENDPOINT}"
   echo "→ Checking loaded workflows..."
 
-  local raw_count
-  if raw_count=$(docker compose -f "${PROJECT_DIR}/docker-compose.yml" exec -T app archon workflow list 2>/dev/null | wc -l | tr -d ' '); then
-    WORKFLOW_COUNT="${raw_count}"
-    echo "  Workflows loaded: ${WORKFLOW_COUNT}"
+  local response count
+  if response=$(curl -sf --max-time 5 "$url" 2>/dev/null); then
+    count=$(printf '%s' "$response" | grep -o '"name":' | wc -l | tr -d ' ') || count="0"
+    WORKFLOW_COUNT="${count}"
   else
     WORKFLOW_COUNT="unknown"
-    echo "  Workflows loaded: unknown"
   fi
+  echo "  Workflows loaded: ${WORKFLOW_COUNT}"
 }
 
 main() {
