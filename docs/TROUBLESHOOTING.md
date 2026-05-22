@@ -123,10 +123,11 @@ actual readiness, and Archon itself needs a few additional seconds to initialize
 - CLI operations fail with authentication errors
 
 **Cause:** The `CLAUDE_CODE_OAUTH_TOKEN` in `.env` has expired. The workflow YAML file is written
-to `.archon/workflows/` (you can see it in `git status`), but the SQLite record is not written, so
-the workflow does not appear in the Workflows Web UI page.
+to `.archon/workflows/` (you can see it in `git status`), but the SQLite record is not written. In
+0.3.12, the YAML on disk is still discoverable — `docker compose restart app` surfaces the workflow
+in the Workflows Web UI even without the SQLite record.
 
-**Fix:** Refresh the token — a browser window will open for you to sign in:
+**Fix:** Run `docker compose restart app` to make the workflow visible in the Web UI immediately (0.3.12 discovers YAML files at startup — the YAML is already on disk). Then refresh the token to complete the save — a browser window will open:
 
 ```bash
 ./scripts/setup-oauth.sh

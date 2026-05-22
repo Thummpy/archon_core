@@ -239,9 +239,9 @@ See [docs/TROUBLESHOOTING.md](TROUBLESHOOTING.md) for common errors and fixes.
 
 ### Save stalling at ~89% in the workflow builder
 
-The most common operational issue. When the OAuth token in `.env` is expired, the workflow builder stalls mid-save. The YAML file is written to `.archon/workflows/` (visible in `git status`) but the SQLite record is not written — so the workflow does not appear in the Workflows Web UI page.
+The most common operational issue. When the OAuth token in `.env` is expired, the workflow builder stalls mid-save. The YAML file is written to `.archon/workflows/` (visible in `git status`) but the SQLite record is not written — in 0.3.12, the YAML on disk is still discoverable: a `docker compose restart app` surfaces the workflow in the Workflows Web UI immediately.
 
-To fix: run `./scripts/setup-oauth.sh` to refresh the token, then retry the save in the builder.
+To fix: run `docker compose restart app` to make the workflow visible right away. Then run `./scripts/setup-oauth.sh` to refresh the token and retry the save in the builder to write the complete SQLite record.
 
 ### Container not starting
 
