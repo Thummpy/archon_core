@@ -24,6 +24,7 @@ services:
       # that tree. Runtime writes surface as `git diff .archon/config.yaml`; review before committing.
       - ./.archon/config.yaml:/.archon/config.yaml
       - ./scripts/git-askpass.sh:/usr/local/bin/git-askpass.sh:ro
+      - ${HOME}/archon-data/claude-home:/home/appuser/.claude
     networks:
       - archon-network
     restart: unless-stopped
