@@ -6,6 +6,8 @@ services:
     environment:
       ARCHON_DOCKER: "true"
       PORT: "${PORT:-3000}"
+      GITHUB_TOKEN: "${GITHUB_TOKEN:-}"
+      GIT_ASKPASS: "/usr/local/bin/git-askpass.sh"
     ports:
       - "127.0.0.1:${PORT:-3000}:${PORT:-3000}"
     volumes:
@@ -21,6 +23,7 @@ services:
       # entrypoint's recursive chown over /.archon fails fatally on any :ro target inside
       # that tree. Runtime writes surface as `git diff .archon/config.yaml`; review before committing.
       - ./.archon/config.yaml:/.archon/config.yaml
+      - ./scripts/git-askpass.sh:/usr/local/bin/git-askpass.sh:ro
     networks:
       - archon-network
     restart: unless-stopped

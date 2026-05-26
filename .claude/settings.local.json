@@ -22,7 +22,9 @@
       "Bash(.claude/scripts/*)",
       "Bash(./.claude/scripts/*)",
       "Bash(scripts/*)",
-      "Bash(./scripts/*)"
+      "Bash(./scripts/*)",
+      "Bash(curl -s -X PATCH http://localhost:3000/api/config/assistants -H 'Content-Type: application/json' -d '{\"assistants\":{\"claude\":{\"model\":\"claude-opus-4-6\"}}}')",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(d['config']['assistants']['claude']\\)\")"
     ],
     "deny": [
       "Bash(rm -rf *)",
