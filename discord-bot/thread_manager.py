@@ -28,12 +28,29 @@ async def save_context(thread_id: int, messages: list[dict]) -> None:
     try:
         async with aiofiles.open(path, "w") as f:
             await f.write(json.dumps(data, indent=2))
-    except OSError as exc:
-        logger.error("Failed to save context thread_id=%d error=%s", thread_id, exc)
+    except (OSError, TypeError) as exc:
+        logger.error(
+            "Failed to save context thread_id=%d error=%s type=%s",
+            thread_id,
+            exc,
+            type(exc).__name__,
+        )
+        if isinstance(exc, TypeError):
+            logger.error(
+                "Message structure that failed to serialize: %s",
+                str(messages)[:500],
+            )
         raise
 
 
-async def load_context(thread_id: int) -> list[dict]:
+async def load_context(thread_id: int) -> list[dict] | None:
+    """Load conversation history for a thread.
+
+    Returns:
+        list[dict]: Messages if successful
+        None: If load failed (corrupt file, I/O error) - signals error to caller
+        []: If thread is new (file doesn't exist) - normal case
+    """
     path = _thread_path(thread_id)
     if not os.path.exists(path):
         return []
@@ -41,14 +58,17 @@ async def load_context(thread_id: int) -> list[dict]:
         async with aiofiles.open(path, "r") as f:
             raw = await f.read()
         data = json.loads(raw)
-        return data.get("messages", [])
+        messages = data.get("messages", [])
+        logger.info("Loaded context thread_id=%d message_count=%d", thread_id, len(messages))
+        return messages
     except (OSError, json.JSONDecodeError) as exc:
         logger.error(
-            "Failed to load context thread_id=%d error=%s, starting fresh",
+            "Failed to load context thread_id=%d error=%s path=%s",
             thread_id,
             exc,
+            path,
         )
-        return []
+        return None  # Signals error to caller
 
 
 def should_archive(message_count: int) -> bool:
