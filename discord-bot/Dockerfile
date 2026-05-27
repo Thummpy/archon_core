@@ -25,8 +25,7 @@ COPY --from=builder /usr/local/lib/node_modules /usr/local/lib/node_modules
 RUN ln -s /usr/local/lib/node_modules/.bin/claude /usr/local/bin/claude
 
 RUN groupadd -g 1000 botuser && useradd -u 1000 -g botuser -m botuser
-RUN mkdir -p /home/botuser/.claude
-RUN mkdir -p /data/threads /data/projects && chown -R botuser:botuser /data
+RUN mkdir -p /home/botuser/.claude /data/threads /data/projects && chown -R botuser:botuser /data
 
 WORKDIR /app
 COPY . /app
