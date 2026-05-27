@@ -54,6 +54,17 @@ The web UI at **http://localhost:3000** is the primary interface. The `archon` C
 
 For the full usage guide (logs, restart procedures, troubleshooting): [docs/DAILY-USE.md](docs/DAILY-USE.md)
 
+## Cloud Deployment (GCP)
+
+Deploy Archon to GCP Compute Engine VMs with Terraform — one command provisions a production-ready instance with Docker, secrets, and networking.
+
+```bash
+./scripts/terraform-init.sh     # download providers, validate config
+./scripts/terraform-apply.sh    # plan, confirm, and create resources
+```
+
+See [docs/TERRAFORM-SETUP.md](docs/TERRAFORM-SETUP.md) for prerequisites and first-time setup, and [docs/GCP-DEPLOYMENT.md](docs/GCP-DEPLOYMENT.md) for the full deployment walkthrough.
+
 ## Operations
 
 All scripts live in `scripts/` and are idempotent — safe to re-run.
@@ -66,6 +77,9 @@ All scripts live in `scripts/` and are idempotent — safe to re-run.
 | `upgrade.sh` | Backup DB, bump image tag, pull, restart, validate | When updating Archon version |
 | `sync-up.sh` | Push `~/archon-data/` to rclone remote | Before switching machines |
 | `sync-down.sh` | Pull from rclone remote to `~/archon-data/` | After switching machines |
+| `terraform-init.sh` | Initialize Terraform, validate config | First-time Terraform setup |
+| `terraform-apply.sh` | Plan and apply GCP infrastructure | Deploy or update cloud VMs |
+| `terraform-destroy.sh` | Destroy all Terraform-managed resources | Tear down cloud VMs |
 
 ## Documentation
 
@@ -78,6 +92,8 @@ All scripts live in `scripts/` and are idempotent — safe to re-run.
 | [SYNC-BETWEEN-MACHINES.md](docs/SYNC-BETWEEN-MACHINES.md) | rclone setup for portable `~/archon-data/` |
 | [UPGRADING.md](docs/UPGRADING.md) | Version bump procedure with backup safety |
 | [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common errors and fixes |
+| [TERRAFORM-SETUP.md](docs/TERRAFORM-SETUP.md) | Terraform installation and GCP auth |
+| [GCP-DEPLOYMENT.md](docs/GCP-DEPLOYMENT.md) | GCP VM provisioning with Terraform |
 
 ## Developing This Repo
 
