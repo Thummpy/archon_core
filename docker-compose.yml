@@ -77,7 +77,7 @@ services:
       - ${HOME}/archon-data/commands:/.claude/commands:ro
       - ${HOME}/archon-data/discord-bot:/data
       - ${HOME}/archon-data/claude-home:/home/botuser/.claude
-      - ${HOME}/archon-data/workspaces:/data/projects:ro
+      - ${HOME}/archon-data/workspaces:/data/projects
     working_dir: /app
     entrypoint: ["/bin/bash", "/entrypoint.sh"]
     networks:
