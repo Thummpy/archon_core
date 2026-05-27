@@ -9,18 +9,10 @@ services:
       GITHUB_TOKEN: "${GITHUB_TOKEN:-}"
       GIT_ASKPASS: "/usr/local/bin/git-askpass.sh"
     volumes:
-      # Persistent data: SQLite DB, workspace clones, logs. Use ${HOME} — ~ does not expand in compose.
+      # Persistent data: workflows, commands, config, SQLite DB, workspace clones, logs.
+      # Everything under /.archon comes from the persistent volume — NOT the git repo.
+      # Use ${HOME} — ~ does not expand in compose.
       - ${HOME}/archon-data:/.archon
-      # Repo-managed workflows and commands mounted rw so Archon's UI can write new definitions back
-      # to the repo. In 0.3.12, getArchonHome() returns /.archon and workflow/command discovery
-      # scans direct children — /.archon/workflows and /.archon/commands (upstream PR #1315).
-      # The bind mounts overlay the data volume at these paths; Docker resolves mount precedence.
-      - ./.archon/workflows:/.archon/workflows
-      - ./.archon/commands:/.archon/commands
-      # Config is rw — Archon's setup wizard writes credentials here at runtime, and the
-      # entrypoint's recursive chown over /.archon fails fatally on any :ro target inside
-      # that tree. Runtime writes surface as `git diff .archon/config.yaml`; review before committing.
-      - ./.archon/config.yaml:/.archon/config.yaml
       - ./scripts/git-askpass.sh:/usr/local/bin/git-askpass.sh:ro
       - ${HOME}/archon-data/claude-home:/home/appuser/.claude
     networks:
@@ -70,8 +62,6 @@ services:
       - app
 
   discord-bot:
-    profiles:
-      - discord
     build:
       context: ./discord-bot
     container_name: archon-discord-bot

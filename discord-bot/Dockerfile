@@ -8,9 +8,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
-RUN curl -fsSL https://claude.ai/install.sh | sh \
-    && cp /root/.local/bin/claude /usr/local/bin/claude \
-    && chmod +x /usr/local/bin/claude
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && rm -rf /var/lib/apt/lists/* \
+    && npm install -g @anthropic-ai/claude-code
 
 FROM python:3.12-slim-bullseye
 
@@ -19,11 +20,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
-COPY --from=builder /usr/local/bin/claude /usr/local/bin/claude
+COPY --from=builder /usr/local/bin/node /usr/local/bin/node
+COPY --from=builder /usr/local/lib/node_modules /usr/local/lib/node_modules
+RUN ln -s /usr/local/lib/node_modules/.bin/claude /usr/local/bin/claude
 
 RUN groupadd -g 1000 botuser && useradd -u 1000 -g botuser -m botuser
-RUN mkdir -p /home/botuser/.claude
-RUN mkdir -p /data/threads /data/projects && chown -R botuser:botuser /data
+RUN mkdir -p /home/botuser/.claude /data/threads /data/projects && chown -R botuser:botuser /data
 
 WORKDIR /app
 COPY . /app
