@@ -16,7 +16,7 @@ async def run_claude(prompt: str, project_dir: str | None = None) -> str:
     if project_dir:
         cmd.extend(["--project-dir", project_dir])
 
-    logger.info("Spawning claude subprocess project_dir=%s", project_dir)
+    logger.info("Spawning claude subprocess project_dir=%s", project_dir or "(none)")
     start = time.monotonic()
 
     try:
@@ -30,11 +30,21 @@ async def run_claude(prompt: str, project_dir: str | None = None) -> str:
             proc.communicate(),
             timeout=config.CLAUDE_TIMEOUT_SECONDS,
         )
+    except FileNotFoundError:
+        logger.error("Claude CLI binary not found - is it installed?")
+        raise RuntimeError(
+            "Claude CLI is not installed or not in PATH"
+        )
+    except PermissionError:
+        logger.error("Claude CLI binary is not executable")
+        raise RuntimeError(
+            "Claude CLI lacks execute permissions"
+        )
     except asyncio.TimeoutError:
         proc.kill()
         await proc.wait()
         elapsed = time.monotonic() - start
-        logger.error("Claude subprocess timed out after %.1fs", elapsed)
+        logger.error("Claude subprocess timed out elapsed=%.1fs", elapsed)
         raise TimeoutError(
             f"Claude did not respond within {config.CLAUDE_TIMEOUT_SECONDS}s"
         )
@@ -48,7 +58,11 @@ async def run_claude(prompt: str, project_dir: str | None = None) -> str:
 
     if proc.returncode != 0:
         err_msg = stderr.decode("utf-8", errors="replace").strip()
-        logger.error("Claude subprocess failed stderr=%s", err_msg[:500])
-        raise RuntimeError(f"Claude exited with code {proc.returncode}: {err_msg}")
+        logger.error(
+            "Claude subprocess failed exit_code=%d stderr=%s",
+            proc.returncode,
+            err_msg[:1000],
+        )
+        raise RuntimeError(f"Claude CLI exited with code {proc.returncode}")
 
     return stdout.decode("utf-8", errors="replace").strip()
