@@ -126,7 +126,10 @@ async def _handle_slash_command(
     prompt = f"/{cmd_name} {args}\n\n---\n\n{cmd_content}".strip()
 
     channel = ctx.channel
-    channel_name = getattr(channel, "parent", channel).name if hasattr(channel, "parent") else channel.name
+    if isinstance(channel, discord.Thread) and channel.parent:
+        channel_name = channel.parent.name
+    else:
+        channel_name = channel.name
     project_dir = _project_dir_for_channel(channel_name)
 
     try:
@@ -222,7 +225,7 @@ async def on_message(message: discord.Message) -> None:
                 f"⚠️ Discord API error ({getattr(exc, 'status', 'unknown')}). "
                 "This might be temporary - please try again."
             )
-        except:
+        except Exception:
             pass
 
     except OSError as exc:
@@ -236,7 +239,7 @@ async def on_message(message: discord.Message) -> None:
                 "⚠️ Failed to save conversation state. "
                 "Contact the bot admin - storage may be full."
             )
-        except:
+        except Exception:
             pass
 
     except Exception as exc:
@@ -249,7 +252,7 @@ async def on_message(message: discord.Message) -> None:
             await message.reply(
                 "❌ An unexpected error occurred. The issue has been logged."
             )
-        except:
+        except Exception:
             pass
 
 
@@ -359,7 +362,7 @@ async def _handle_thread_message(
                     "❌ I generated a response but lack permission to send it. "
                     "An admin needs to grant me `Send Messages in Threads`."
                 )
-            except:
+            except Exception:
                 pass
         except discord.HTTPException as exc:
             send_failed = True
@@ -375,7 +378,7 @@ async def _handle_thread_message(
                     f"({getattr(exc, 'status', 'unknown')}). "
                     "This might be temporary - please try again."
                 )
-            except:
+            except Exception:
                 pass
 
         # Notify user about save failure (after attempting send)
@@ -385,7 +388,7 @@ async def _handle_thread_message(
                     "⚠️ **Warning**: I responded but couldn't save our conversation history. "
                     "Storage might be full. Your next message will start a fresh conversation."
                 )
-            except:
+            except Exception:
                 logger.error("Could not notify user about save failure thread_id=%d", thread.id)
 
         _touch_health_sentinel()
