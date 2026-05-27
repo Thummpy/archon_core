@@ -1,6 +1,6 @@
 # archon_core
 
-Docker-based deployment of [Archon](https://archon.diy) with version pinning, custom workflows, operational scripts, and team-friendly documentation.
+Docker-based deployment of [Archon](https://archon.diy) with version pinning, custom workflows, operational scripts, automated cloud deployment, and team-friendly documentation.
 
 ## What Is Archon?
 
@@ -15,6 +15,7 @@ Archon's native install requires Bun, Node.js, and OS-specific dependencies. Thi
 - **Version pinning** — a specific GHCR image tag, not `latest`
 - **Host-path volumes** — all data in `~/archon-data/`, inspectable and portable
 - **Custom workflows** — version-controlled YAML in `.archon/workflows/`
+- **Automated deployment** — GitHub Actions workflow for zero-touch production updates
 - **Operational scripts** — backup, sync, upgrade, health check
 - **Team docs** — step-by-step guides assuming zero Docker experience
 
@@ -78,12 +79,14 @@ All scripts live in `scripts/` and are idempotent — safe to re-run.
 | `terraform-init.sh` | Initialize Terraform, validate config | First-time Terraform setup |
 | `terraform-apply.sh` | Plan and apply GCP infrastructure | Deploy or update cloud VMs |
 | `terraform-destroy.sh` | Destroy all Terraform-managed resources | Tear down cloud VMs |
+| *(GitHub Actions)* | Deploy to production GCP VM via SSH | Automatic on push to `main` |
 
 ## Documentation
 
 | Guide | Covers |
 |-------|--------|
 | [SETUP.md](docs/SETUP.md) | First-time install: Docker, OAuth, first `up` |
+| [DEPLOYMENT.md](docs/DEPLOYMENT.md) | Production deployment: GitHub secrets, SSH, GCP VM setup |
 | [DAILY-USE.md](docs/DAILY-USE.md) | Start/stop, web UI, CLI workflows, logs, troubleshooting tips |
 | [SHARING-WORKFLOWS.md](docs/SHARING-WORKFLOWS.md) | How `git pull` + restart delivers new workflows to the team |
 | [WORKFLOW-OVERLAY.md](docs/WORKFLOW-OVERLAY.md) | How custom workflows coexist with Archon's built-ins |
