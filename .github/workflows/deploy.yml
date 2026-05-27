@@ -92,6 +92,9 @@ jobs:
           echo "→ Pulling latest images"
           docker compose pull
 
+          echo "→ Building locally-built services"
+          docker compose build
+
           echo "→ Restarting containers"
           docker compose up -d
 
