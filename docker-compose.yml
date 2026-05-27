@@ -70,6 +70,8 @@ services:
       - app
 
   discord-bot:
+    profiles:
+      - discord
     build:
       context: ./discord-bot
     container_name: archon-discord-bot

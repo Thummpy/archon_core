@@ -89,10 +89,10 @@ jobs:
           git status --short
 
           echo "→ Pulling latest images"
-          docker compose pull --ignore-buildable || true
+          docker compose pull
 
-          echo "→ Rebuilding and restarting containers"
-          docker compose up -d --build
+          echo "→ Restarting containers"
+          docker compose up -d
 
           echo "→ Waiting for containers to stabilize (15s)"
           sleep 15
