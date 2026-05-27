@@ -118,12 +118,12 @@ validate_file() {
     file_failed=1
   fi
 
+  # Command files live in the Archon runtime image, not in this config repo.
   while IFS= read -r cmd_ref; do
     [ -z "$cmd_ref" ] || [ "$cmd_ref" = "null" ] && continue
     local cmd_file="${COMMANDS_DIR}/${cmd_ref#/}"
     if [ ! -f "$cmd_file" ]; then
-      echo "  ✗ 'command: ${cmd_ref}' references a file that does not exist: ${cmd_file}"
-      file_failed=1
+      echo "  ⚠ 'command: ${cmd_ref}' not found locally (expected in runtime image)"
     fi
   done < <(get_command_refs "$parser" "$file" 2>/dev/null || true)
 
