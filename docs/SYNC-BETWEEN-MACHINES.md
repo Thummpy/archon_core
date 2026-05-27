@@ -1,3 +1,7 @@
+> **DEPRECATED:** This document describes rclone sync functionality that was removed in favor of OAuth2-protected local-only deployment. The sync scripts (`sync-up.sh`, `sync-down.sh`) no longer exist. This document is kept for historical reference only.
+
+---
+
 # Sync Between Machines
 
 ## What you need before starting
@@ -187,7 +191,7 @@ archon-app: running (healthy) | Archon API: OK | Workflows loaded: N
 ✓ sync-down complete in 25s ← gdrive:archon-data
 ```
 
-Open `http://localhost:3000` to confirm Archon is running.
+Open `https://$ARCHON_DOMAIN` to confirm Archon is running.
 
 To skip the interactive confirmation (for use in scripts or automation):
 
@@ -252,7 +256,7 @@ You are at your desktop and want to continue where you left off on your laptop.
 ./scripts/sync-down.sh
 ```
 
-Confirm the overwrite with `YES`. Data downloads and Archon starts automatically. Open `http://localhost:3000` when the script finishes.
+Confirm the overwrite with `YES`. Data downloads and Archon starts automatically. Open `https://$ARCHON_DOMAIN` when the script finishes.
 
 ## Something went wrong?
 

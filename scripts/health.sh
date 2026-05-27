@@ -82,34 +82,48 @@ check_container() {
 }
 
 check_api() {
-  local port="${PORT:-${DEFAULT_PORT}}"
-  local url="http://localhost:${port}${HEALTH_ENDPOINT}"
-  echo "→ Checking API health (${url})..."
+  local domain="${ARCHON_DOMAIN:-localhost}"
+  local url="https://${domain}${HEALTH_ENDPOINT}"
+  echo "→ Checking API health (${url} via Caddy)..."
 
-  if curl -sf --max-time 5 "$url" &>/dev/null; then
-    API_STATUS="OK"
-    echo "✓ Archon API: OK"
+  local http_code
+  if http_code=$(curl -sfk --max-time 5 -o /dev/null -w '%{http_code}' "$url" 2>&1); then
+    if [[ "$http_code" == "200" ]]; then
+      API_STATUS="OK"
+      echo "✓ Archon API: OK (via Caddy reverse proxy)"
+    else
+      API_STATUS="unreachable"
+      echo "✗ Archon API: HTTP ${http_code} (${url})" >&2
+      case "$http_code" in
+        302) echo "  Hint: OAuth2 Proxy redirecting to login — check OAUTH2_PROXY_* vars in .env" >&2 ;;
+        500) echo "  Hint: OAuth2 Proxy internal error — check docker compose logs oauth2-proxy" >&2 ;;
+        502|503|504) echo "  Hint: Proxy error — upstream archon-app may not be ready yet" >&2 ;;
+      esac
+      return 1
+    fi
   else
     API_STATUS="unreachable"
-    echo "✗ Archon API: unreachable (${url})"
+    echo "✗ Archon API: connection failed (${url})" >&2
+    echo "  Hint: Check 'docker compose ps' — caddy and oauth2-proxy must be running" >&2
     return 1
   fi
 }
 
 # Informational only — workflow count is never a health gate.
 check_workflows() {
-  local port="${PORT:-${DEFAULT_PORT}}"
-  local url="http://localhost:${port}${WORKFLOWS_ENDPOINT}"
-  echo "→ Checking loaded workflows..."
+  local domain="${ARCHON_DOMAIN:-localhost}"
+  local url="https://${domain}${WORKFLOWS_ENDPOINT}"
+  echo "→ Checking loaded workflows (via Caddy)..."
 
   local response count
-  if response=$(curl -sf --max-time 5 "$url" 2>/dev/null); then
+  if response=$(curl -sfk --max-time 5 "$url" 2>/dev/null); then
     count=$(printf '%s' "$response" | grep -o '"name":' | wc -l | tr -d ' ') || count="0"
     WORKFLOW_COUNT="${count}"
+    echo "  Workflows loaded: ${WORKFLOW_COUNT}"
   else
     WORKFLOW_COUNT="unknown"
+    echo "  Workflows loaded: unknown (connection failed — see API health check above)" >&2
   fi
-  echo "  Workflows loaded: ${WORKFLOW_COUNT}"
 }
 
 main() {

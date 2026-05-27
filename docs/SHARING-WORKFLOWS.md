@@ -56,7 +56,7 @@ docker compose exec app ls /.archon/workflows/
 
 **What you should see:** The new workflow YAML filename appears in the directory listing. This confirms the bind-mount delivered the file.
 
-> **The workflow appears in the Web UI after restart (0.3.12).** Archon discovers YAML files at startup — confirmed in [`.claude/docs/smoke-tests.md`](../.claude/docs/smoke-tests.md) Test 30. The `archon` CLI binary is not in the container PATH by design — `archon workflow list` exits with code 127. You can also verify delivery at `http://localhost:3000/workflows`.
+> **The workflow appears in the Web UI after restart (0.3.12).** Archon discovers YAML files at startup — confirmed in [`.claude/docs/smoke-tests.md`](../.claude/docs/smoke-tests.md) Test 30. The `archon` CLI binary is not in the container PATH by design — `archon workflow list` exits with code 127. You can also verify delivery at `https://localhost/workflows`.
 
 ## Contributing a workflow
 
@@ -113,7 +113,7 @@ git commit -m "chore(workflow): suppress built-in <filename>"
 git push
 ```
 
-**What you should see:** After the restart, open `http://localhost:3000/workflows` — the suppressed workflow no longer appears (it has been replaced by the stub). The `archon` CLI binary is not in the container PATH by design — `archon workflow list` exits with code 127.
+**What you should see:** After the restart, open `https://$ARCHON_DOMAIN/workflows` — the suppressed workflow no longer appears (it has been replaced by the stub). The `archon` CLI binary is not in the container PATH by design — `archon workflow list` exits with code 127.
 
 For the full overlay resolution order and instructions on restoring a suppressed default, see [docs/WORKFLOW-OVERLAY.md](WORKFLOW-OVERLAY.md).
 

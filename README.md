@@ -37,15 +37,15 @@ Wait ~20 seconds, then verify:
 ./scripts/health.sh
 ```
 
-Open the web UI at **http://localhost:3000**.
+Open the web UI at **https://$ARCHON_DOMAIN** (defaults to `https://localhost` for local dev).
 
 First time? See [docs/SETUP.md](docs/SETUP.md) for the full walkthrough (including Docker installation).
 
 ## Using Archon (v0.3.12)
 
-The web UI at **http://localhost:3000** is the primary interface. The `archon` CLI binary is not in the container's PATH by design (the upstream Dockerfile does not add it), so most `docker compose exec` CLI commands are unavailable.
+The web UI at **https://$ARCHON_DOMAIN** is the primary interface. The `archon` CLI binary is not in the container's PATH by design (the upstream Dockerfile does not add it), so most `docker compose exec` CLI commands are unavailable.
 
-1. **Open the web UI** — `http://localhost:3000` (or `http://localhost:<PORT>` if you changed it in `.env`)
+1. **Open the web UI** — `https://$ARCHON_DOMAIN`
 2. **Add a project** — paste a repository URL in the web UI. Archon clones it into `~/archon-data/` on the host.
 3. **Run a workflow** — type a natural-language request in the chat. Archon selects the matching workflow and streams progress.
 4. **Build custom workflows** — use the visual builder at `/workflows/builder`. Saved workflows write YAML to `.archon/workflows/` (bind-mounted from this repo).
@@ -75,8 +75,6 @@ All scripts live in `scripts/` and are idempotent — safe to re-run.
 | `health.sh` | Check container + API + workflow count | After startup or to diagnose issues |
 | `backup.sh` | WAL-safe SQLite backup to `backups/` | Before upgrades, periodically |
 | `upgrade.sh` | Backup DB, bump image tag, pull, restart, validate | When updating Archon version |
-| `sync-up.sh` | Push `~/archon-data/` to rclone remote | Before switching machines |
-| `sync-down.sh` | Pull from rclone remote to `~/archon-data/` | After switching machines |
 | `terraform-init.sh` | Initialize Terraform, validate config | First-time Terraform setup |
 | `terraform-apply.sh` | Plan and apply GCP infrastructure | Deploy or update cloud VMs |
 | `terraform-destroy.sh` | Destroy all Terraform-managed resources | Tear down cloud VMs |
@@ -89,7 +87,7 @@ All scripts live in `scripts/` and are idempotent — safe to re-run.
 | [DAILY-USE.md](docs/DAILY-USE.md) | Start/stop, web UI, CLI workflows, logs, troubleshooting tips |
 | [SHARING-WORKFLOWS.md](docs/SHARING-WORKFLOWS.md) | How `git pull` + restart delivers new workflows to the team |
 | [WORKFLOW-OVERLAY.md](docs/WORKFLOW-OVERLAY.md) | How custom workflows coexist with Archon's built-ins |
-| [SYNC-BETWEEN-MACHINES.md](docs/SYNC-BETWEEN-MACHINES.md) | rclone setup for portable `~/archon-data/` |
+| [SYNC-BETWEEN-MACHINES.md](docs/SYNC-BETWEEN-MACHINES.md) | *(deprecated)* rclone sync reference |
 | [UPGRADING.md](docs/UPGRADING.md) | Version bump procedure with backup safety |
 | [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common errors and fixes |
 | [TERRAFORM-SETUP.md](docs/TERRAFORM-SETUP.md) | Terraform installation and GCP auth |

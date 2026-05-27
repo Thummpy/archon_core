@@ -1,0 +1,5 @@
+{$ARCHON_DOMAIN:localhost} {
+	tls {$OAUTH_EMAIL:admin@example.com}
+
+	reverse_proxy oauth2-proxy:4180
+}
