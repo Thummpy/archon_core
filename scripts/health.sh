@@ -85,12 +85,25 @@ check_api() {
   local url="https://localhost${HEALTH_ENDPOINT}"
   echo "→ Checking API health (${url} via Caddy)..."
 
-  if curl -sfk --max-time 5 "$url" &>/dev/null; then
-    API_STATUS="OK"
-    echo "✓ Archon API: OK (via Caddy reverse proxy)"
+  local http_code
+  if http_code=$(curl -sfk --max-time 5 -o /dev/null -w '%{http_code}' "$url" 2>&1); then
+    if [[ "$http_code" == "200" ]]; then
+      API_STATUS="OK"
+      echo "✓ Archon API: OK (via Caddy reverse proxy)"
+    else
+      API_STATUS="unreachable"
+      echo "✗ Archon API: HTTP ${http_code} (${url})" >&2
+      case "$http_code" in
+        302) echo "  Hint: OAuth2 Proxy redirecting to login — check OAUTH2_PROXY_* vars in .env" >&2 ;;
+        500) echo "  Hint: OAuth2 Proxy internal error — check docker compose logs oauth2-proxy" >&2 ;;
+        502|503|504) echo "  Hint: Proxy error — upstream archon-app may not be ready yet" >&2 ;;
+      esac
+      return 1
+    fi
   else
     API_STATUS="unreachable"
-    echo "✗ Archon API: unreachable (${url})"
+    echo "✗ Archon API: connection failed (${url})" >&2
+    echo "  Hint: Check 'docker compose ps' — caddy and oauth2-proxy must be running" >&2
     return 1
   fi
 }
@@ -104,10 +117,11 @@ check_workflows() {
   if response=$(curl -sfk --max-time 5 "$url" 2>/dev/null); then
     count=$(printf '%s' "$response" | grep -o '"name":' | wc -l | tr -d ' ') || count="0"
     WORKFLOW_COUNT="${count}"
+    echo "  Workflows loaded: ${WORKFLOW_COUNT}"
   else
     WORKFLOW_COUNT="unknown"
+    echo "  Workflows loaded: unknown (connection failed — see API health check above)" >&2
   fi
-  echo "  Workflows loaded: ${WORKFLOW_COUNT}"
 }
 
 main() {

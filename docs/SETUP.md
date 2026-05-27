@@ -130,10 +130,10 @@ The variables available in `.env`:
 |---|---|---|
 | `CLAUDE_CODE_OAUTH_TOKEN` | OAuth token for Anthropic API access | Run `./scripts/setup-oauth.sh` — it writes this automatically |
 | `PORT` | Host port Archon binds to (default: `3000`) | Edit `.env` manually if port 3000 is already in use |
-| `OAUTH2_PROXY_CLIENT_ID` | Google OAuth2 client ID | Create at Google Cloud Console (Step 6 below) |
-| `OAUTH2_PROXY_CLIENT_SECRET` | Google OAuth2 client secret | Create at Google Cloud Console (Step 6 below) |
+| `OAUTH2_PROXY_CLIENT_ID` | Google OAuth2 client ID | Created in Step 5 above |
+| `OAUTH2_PROXY_CLIENT_SECRET` | Google OAuth2 client secret | Created in Step 5 above |
 | `OAUTH2_PROXY_COOKIE_SECRET` | Session encryption secret | Generate with `openssl rand -base64 32` |
-| `OAUTH_EMAIL` | Email allowed to access Archon (default: `chris@caldwell.ws`) | Edit `.env` manually |
+| `OAUTH_EMAIL` | Email allowed to access Archon | Edit `.env` manually with your email address |
 
 **What you should see:** A `.env` file exists in the repo root. Running `git status` shows
 no new tracked file — the entry is `.gitignore`'d.
