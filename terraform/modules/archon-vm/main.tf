@@ -144,7 +144,7 @@ locals {
     echo "  Domain: $ARCHON_DOMAIN"
 
     echo "→ Generating OAuth2 cookie secret..."
-    OAUTH2_COOKIE_SECRET=$(openssl rand -base64 32)
+    OAUTH2_COOKIE_SECRET=$(openssl rand -hex 16)
 
     echo "→ Writing .env file..."
     cat > "$USER_HOME/archon_core/.env" <<EOF
