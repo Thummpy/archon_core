@@ -90,30 +90,30 @@ locals {
     rm -f /tmp/get-docker.sh
     systemctl enable docker
 
-    echo "→ Adding $$USERNAME to docker group..."
-    usermod -aG docker "$$USERNAME"
+    echo "→ Adding $USERNAME to docker group..."
+    usermod -aG docker "$USERNAME"
 
     echo "→ Retrieving secrets from Secret Manager..."
 
     echo "  → Fetching claude_oauth_token..."
-    if ! CLAUDE_CODE_OAUTH_TOKEN=$$(gcloud secrets versions access latest --secret="${var.secrets_map.claude_oauth_token}" 2>&1); then
+    if ! CLAUDE_CODE_OAUTH_TOKEN=$(gcloud secrets versions access latest --secret="${var.secrets_map.claude_oauth_token}" 2>&1); then
       echo "✗ Failed to retrieve secret: ${var.secrets_map.claude_oauth_token}" >&2
-      echo "  Error: $$CLAUDE_CODE_OAUTH_TOKEN" >&2
+      echo "  Error: $CLAUDE_CODE_OAUTH_TOKEN" >&2
       echo "  Verify: secret exists, service account has secretmanager.secretAccessor, API enabled" >&2
       exit 1
     fi
 
     echo "  → Fetching github_token..."
-    if ! GITHUB_TOKEN=$$(gcloud secrets versions access latest --secret="${var.secrets_map.github_token}" 2>&1); then
+    if ! GITHUB_TOKEN=$(gcloud secrets versions access latest --secret="${var.secrets_map.github_token}" 2>&1); then
       echo "✗ Failed to retrieve secret: ${var.secrets_map.github_token}" >&2
-      echo "  Error: $$GITHUB_TOKEN" >&2
+      echo "  Error: $GITHUB_TOKEN" >&2
       exit 1
     fi
 
     echo "  → Fetching discord_bot_token..."
-    if ! DISCORD_BOT_TOKEN=$$(gcloud secrets versions access latest --secret="${var.secrets_map.discord_bot_token}" 2>&1); then
+    if ! DISCORD_BOT_TOKEN=$(gcloud secrets versions access latest --secret="${var.secrets_map.discord_bot_token}" 2>&1); then
       echo "✗ Failed to retrieve secret: ${var.secrets_map.discord_bot_token}" >&2
-      echo "  Error: $$DISCORD_BOT_TOKEN" >&2
+      echo "  Error: $DISCORD_BOT_TOKEN" >&2
       exit 1
     fi
 
@@ -121,13 +121,13 @@ locals {
     OAUTH2_CLIENT_SECRET=""
     %{ if var.secrets_map.oauth2_client_id != "" ~}
     echo "  → Fetching oauth2_client_id..."
-    if ! OAUTH2_CLIENT_ID=$$(gcloud secrets versions access latest --secret="${var.secrets_map.oauth2_client_id}" 2>&1); then
+    if ! OAUTH2_CLIENT_ID=$(gcloud secrets versions access latest --secret="${var.secrets_map.oauth2_client_id}" 2>&1); then
       echo "⚠ Failed to retrieve oauth2_client_id (OAuth2 Proxy will not work until configured)" >&2
       OAUTH2_CLIENT_ID=""
     fi
 
     echo "  → Fetching oauth2_client_secret..."
-    if ! OAUTH2_CLIENT_SECRET=$$(gcloud secrets versions access latest --secret="${var.secrets_map.oauth2_client_secret}" 2>&1); then
+    if ! OAUTH2_CLIENT_SECRET=$(gcloud secrets versions access latest --secret="${var.secrets_map.oauth2_client_secret}" 2>&1); then
       echo "⚠ Failed to retrieve oauth2_client_secret (OAuth2 Proxy will not work until configured)" >&2
       OAUTH2_CLIENT_SECRET=""
     fi
@@ -136,36 +136,36 @@ locals {
     echo "✓ All secrets retrieved successfully"
 
     echo "→ Cloning repository..."
-    sudo -u "$$USERNAME" git clone ${var.github_repo_url} "$$USER_HOME/archon_core"
+    sudo -u "$USERNAME" git clone ${var.github_repo_url} "$USER_HOME/archon_core"
 
     echo "→ Resolving sslip.io domain..."
-    EXTERNAL_IP=$$(curl -s http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip -H "Metadata-Flavor: Google")
-    ARCHON_DOMAIN=$$(echo $$EXTERNAL_IP | tr '.' '-').sslip.io
-    echo "  Domain: $$ARCHON_DOMAIN"
+    EXTERNAL_IP=$(curl -s http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip -H "Metadata-Flavor: Google")
+    ARCHON_DOMAIN=$(echo $EXTERNAL_IP | tr '.' '-').sslip.io
+    echo "  Domain: $ARCHON_DOMAIN"
 
     echo "→ Generating OAuth2 cookie secret..."
-    OAUTH2_COOKIE_SECRET=$$(openssl rand -base64 32)
+    OAUTH2_COOKIE_SECRET=$(openssl rand -base64 32)
 
     echo "→ Writing .env file..."
-    cat > "$$USER_HOME/archon_core/.env" <<EOF
-CLAUDE_CODE_OAUTH_TOKEN=$$CLAUDE_CODE_OAUTH_TOKEN
-GITHUB_TOKEN=$$GITHUB_TOKEN
-DISCORD_BOT_TOKEN=$$DISCORD_BOT_TOKEN
-ARCHON_DOMAIN=$$ARCHON_DOMAIN
+    cat > "$USER_HOME/archon_core/.env" <<EOF
+CLAUDE_CODE_OAUTH_TOKEN=$CLAUDE_CODE_OAUTH_TOKEN
+GITHUB_TOKEN=$GITHUB_TOKEN
+DISCORD_BOT_TOKEN=$DISCORD_BOT_TOKEN
+ARCHON_DOMAIN=$ARCHON_DOMAIN
 PORT=3000
-OAUTH2_PROXY_CLIENT_ID=$$OAUTH2_CLIENT_ID
-OAUTH2_PROXY_CLIENT_SECRET=$$OAUTH2_CLIENT_SECRET
-OAUTH2_PROXY_COOKIE_SECRET=$$OAUTH2_COOKIE_SECRET
+OAUTH2_PROXY_CLIENT_ID=$OAUTH2_CLIENT_ID
+OAUTH2_PROXY_CLIENT_SECRET=$OAUTH2_CLIENT_SECRET
+OAUTH2_PROXY_COOKIE_SECRET=$OAUTH2_COOKIE_SECRET
 OAUTH_EMAIL=${var.oauth_email}
 EOF
 
     echo "→ Creating data directory..."
-    mkdir -p "$$USER_HOME/archon-data"
-    chown -R "$$USERNAME:$$USERNAME" "$$USER_HOME/archon_core" "$$USER_HOME/archon-data"
+    mkdir -p "$USER_HOME/archon-data"
+    chown -R "$USERNAME:$USERNAME" "$USER_HOME/archon_core" "$USER_HOME/archon-data"
 
     echo "→ Building and starting Archon..."
-    cd "$$USER_HOME/archon_core"
-    export HOME="$$USER_HOME"
+    cd "$USER_HOME/archon_core"
+    export HOME="$USER_HOME"
     if ! docker compose up -d --build; then
       echo "✗ docker compose up failed" >&2
       docker compose logs --tail=30 >&2
@@ -184,7 +184,7 @@ EOF
     fi
 
     echo "✓ Archon startup complete"
-    echo "✓ Access at: https://$$ARCHON_DOMAIN"
+    echo "✓ Access at: https://$ARCHON_DOMAIN"
     touch /var/log/archon-startup-complete
   SCRIPT
 }
