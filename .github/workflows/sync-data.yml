@@ -1,0 +1,146 @@
+# One-time data sync: downloads a tarball from a GitHub release and extracts
+# it into ~/archon-data on the GCP VM. Run manually after the first deploy.
+# Can be removed after successful sync.
+
+name: Sync Data to VM
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release tag containing the data tarball (e.g. data-seed-v1)'
+        required: true
+        default: 'data-seed-v1'
+      asset_name:
+        description: 'Name of the tarball asset'
+        required: true
+        default: 'archon-data-seed.tar.gz'
+
+concurrency:
+  group: sync-data
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Extract SSH credentials from Terraform state
+        id: tf
+        working-directory: terraform
+        run: |
+          terraform init -backend=true -input=false >/dev/null 2>&1
+
+          DEPLOY_HOST=$(terraform output -json instance_ips 2>/dev/null | jq -r '.chris // empty') || true
+          if [ -z "$DEPLOY_HOST" ] || [ "$DEPLOY_HOST" = "null" ]; then
+            echo "::error::No VM found in Terraform state"
+            exit 1
+          fi
+
+          terraform output -json ssh_private_keys | jq -r '.chris' > /tmp/deploy_key.pem
+          chmod 600 /tmp/deploy_key.pem
+          echo "host=${DEPLOY_HOST}" >> "$GITHUB_OUTPUT"
+
+      - name: Download data tarball from release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "${{ inputs.release_tag }}" \
+            --pattern "${{ inputs.asset_name }}" \
+            --dir /tmp
+
+          ls -lh "/tmp/${{ inputs.asset_name }}"
+
+      - name: Upload tarball to VM
+        env:
+          DEPLOY_HOST: ${{ steps.tf.outputs.host }}
+        run: |
+          scp -o StrictHostKeyChecking=no -o ConnectTimeout=30 \
+            -i /tmp/deploy_key.pem \
+            "/tmp/${{ inputs.asset_name }}" \
+            "chris@${DEPLOY_HOST}:/tmp/${{ inputs.asset_name }}"
+
+      - name: Extract data and restart containers
+        env:
+          DEPLOY_HOST: ${{ steps.tf.outputs.host }}
+        run: |
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 \
+            -i /tmp/deploy_key.pem \
+            "chris@${DEPLOY_HOST}" bash -s <<'SYNC'
+          set -euo pipefail
+
+          ASSET="/tmp/${{ inputs.asset_name }}"
+          DATA_DIR="${HOME}/archon-data"
+
+          echo "→ Stopping containers"
+          cd ~/archon_core
+          docker compose down
+
+          echo "→ Backing up existing data (if any)"
+          if [ -d "$DATA_DIR" ] && [ "$(ls -A "$DATA_DIR" 2>/dev/null)" ]; then
+            mv "$DATA_DIR" "${DATA_DIR}.bak.$(date +%s)"
+          fi
+          mkdir -p "$DATA_DIR"
+
+          echo "→ Extracting tarball to ${DATA_DIR}"
+          tar xzf "$ASSET" -C "$DATA_DIR"
+
+          echo "→ Fixing permissions"
+          sudo chown -R "$(whoami):$(whoami)" "$DATA_DIR"
+          sudo chown -R "$(whoami):$(whoami)" ~/.docker 2>/dev/null || true
+
+          echo "→ Verifying extracted data"
+          echo "  Workflows: $(ls "$DATA_DIR/workflows/" 2>/dev/null | wc -l) files"
+          echo "  Commands:  $(ls "$DATA_DIR/commands/" 2>/dev/null | wc -l) files"
+          echo "  Database:  $(ls -lh "$DATA_DIR/archon.db" 2>/dev/null | awk '{print $5}')"
+          echo "  Claude home: $(du -sh "$DATA_DIR/claude-home" 2>/dev/null | awk '{print $1}')"
+
+          echo "→ Starting containers"
+          docker compose up -d
+
+          echo "→ Waiting for containers to stabilize (20s)"
+          sleep 20
+
+          echo "→ Verifying container health"
+          docker compose ps
+
+          echo "→ Verifying API health"
+          if docker compose exec -T app curl -sf --max-time 10 http://localhost:3000/api/health > /dev/null 2>&1; then
+            echo "✓ Data sync complete — API is healthy"
+          else
+            echo "⚠ API health check failed — check logs"
+            docker compose logs --tail=20
+            exit 1
+          fi
+
+          echo "→ Cleaning up"
+          rm -f "$ASSET"
+          SYNC
+
+      - name: Cleanup
+        if: always()
+        run: rm -f /tmp/deploy_key.pem
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Data Sync to VM"
+            echo "- **Host:** \`${{ steps.tf.outputs.host }}\`"
+            echo "- **Release:** \`${{ inputs.release_tag }}\`"
+            echo "- **Asset:** \`${{ inputs.asset_name }}\`"
+            echo "- **Status:** ${{ job.status }}"
+          } >> "$GITHUB_STEP_SUMMARY"

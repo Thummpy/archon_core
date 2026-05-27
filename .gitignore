@@ -120,6 +120,13 @@ references/
 CLAUDE_AI_INIT_PROJECT/
 
 # ============================================================================
+# Archon Data (lives on persistent volume, NOT in the repo)
+# ============================================================================
+.archon/workflows/
+.archon/commands/
+.archon/config.yaml
+
+# ============================================================================
 # Project-specific
 # ============================================================================
 # Timestamped SQLite backups created by scripts/backup.sh and scripts/upgrade.sh
