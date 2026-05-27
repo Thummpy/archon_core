@@ -74,9 +74,11 @@ variable "disk_size_gb" {
 variable "secrets_map" {
   description = "GCP Secret Manager secret names for per-instance credentials"
   type = object({
-    claude_oauth_token = string
-    github_token       = string
-    discord_bot_token  = string
+    claude_oauth_token   = string
+    github_token         = string
+    discord_bot_token    = string
+    oauth2_client_id     = optional(string, "")
+    oauth2_client_secret = optional(string, "")
   })
   sensitive = true
 }

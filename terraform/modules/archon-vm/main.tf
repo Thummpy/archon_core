@@ -120,6 +120,22 @@ locals {
       exit 1
     fi
 
+    OAUTH2_CLIENT_ID=""
+    OAUTH2_CLIENT_SECRET=""
+    %{ if var.secrets_map.oauth2_client_id != "" ~}
+    echo "  → Fetching oauth2_client_id..."
+    if ! OAUTH2_CLIENT_ID=$$(gcloud secrets versions access latest --secret="${var.secrets_map.oauth2_client_id}" 2>&1); then
+      echo "⚠ Failed to retrieve oauth2_client_id (OAuth2 Proxy will not work until configured)" >&2
+      OAUTH2_CLIENT_ID=""
+    fi
+
+    echo "  → Fetching oauth2_client_secret..."
+    if ! OAUTH2_CLIENT_SECRET=$$(gcloud secrets versions access latest --secret="${var.secrets_map.oauth2_client_secret}" 2>&1); then
+      echo "⚠ Failed to retrieve oauth2_client_secret (OAuth2 Proxy will not work until configured)" >&2
+      OAUTH2_CLIENT_SECRET=""
+    fi
+    %{ endif ~}
+
     echo "✓ All secrets retrieved successfully"
 
     echo "→ Cloning repository..."
@@ -132,6 +148,9 @@ locals {
     ARCHON_DOMAIN=$$(echo $$EXTERNAL_IP | tr '.' '-').sslip.io
     echo "  Domain: $$ARCHON_DOMAIN"
 
+    echo "→ Generating OAuth2 cookie secret..."
+    OAUTH2_COOKIE_SECRET=$$(openssl rand -base64 32)
+
     echo "→ Writing .env file..."
     cat > .env <<EOF
 CLAUDE_CODE_OAUTH_TOKEN=$$CLAUDE_CODE_OAUTH_TOKEN
@@ -139,6 +158,10 @@ GITHUB_TOKEN=$$GITHUB_TOKEN
 DISCORD_BOT_TOKEN=$$DISCORD_BOT_TOKEN
 ARCHON_DOMAIN=$$ARCHON_DOMAIN
 PORT=3000
+OAUTH2_PROXY_CLIENT_ID=$$OAUTH2_CLIENT_ID
+OAUTH2_PROXY_CLIENT_SECRET=$$OAUTH2_CLIENT_SECRET
+OAUTH2_PROXY_COOKIE_SECRET=$$OAUTH2_COOKIE_SECRET
+OAUTH_EMAIL=${var.oauth_email}
 EOF
 
     echo "→ Creating data directory..."

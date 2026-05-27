@@ -1,0 +1,170 @@
+name: Infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Terraform action"
+        required: true
+        default: "apply"
+        type: choice
+        options:
+          - apply
+          - plan
+          - destroy
+
+concurrency:
+  group: infrastructure
+  cancel-in-progress: false
+
+env:
+  TF_DIR: terraform
+  GCP_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+  TF_STATE_BUCKET: archon-tfstate
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Create state bucket if needed
+        run: |
+          if ! gcloud storage buckets describe "gs://${TF_STATE_BUCKET}" --project="${GCP_PROJECT}" &>/dev/null; then
+            echo "→ Creating state bucket gs://${TF_STATE_BUCKET}"
+            gcloud storage buckets create "gs://${TF_STATE_BUCKET}" \
+              --project="${GCP_PROJECT}" \
+              --location=us-central1 \
+              --uniform-bucket-level-access
+            gcloud storage buckets update "gs://${TF_STATE_BUCKET}" \
+              --versioning
+          else
+            echo "✓ State bucket already exists"
+          fi
+
+      - name: Write terraform.tfvars
+        working-directory: ${{ env.TF_DIR }}
+        env:
+          TF_VAR_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+          TF_VAR_EMAIL: ${{ secrets.OAUTH_EMAIL }}
+        run: |
+          printf '%s\n' \
+            "gcp_project_id = \"${TF_VAR_PROJECT}\"" \
+            "oauth_email    = \"${TF_VAR_EMAIL}\"" \
+            "" \
+            "archon_instances = {" \
+            "  chris = {" \
+            "    secrets_map = {" \
+            "      claude_oauth_token   = \"archon-chris-claude-oauth-token\"" \
+            "      github_token         = \"archon-chris-github-token\"" \
+            "      discord_bot_token    = \"archon-chris-discord-bot-token\"" \
+            "      oauth2_client_id     = \"archon-chris-oauth2-client-id\"" \
+            "      oauth2_client_secret = \"archon-chris-oauth2-client-secret\"" \
+            "    }" \
+            "  }" \
+            "}" > terraform.tfvars
+
+      - name: Terraform Init
+        working-directory: ${{ env.TF_DIR }}
+        run: terraform init
+
+      - name: Terraform Plan
+        working-directory: ${{ env.TF_DIR }}
+        run: terraform plan -out=tfplan
+
+      - name: Terraform Apply
+        if: inputs.action == 'apply'
+        working-directory: ${{ env.TF_DIR }}
+        run: terraform apply -auto-approve tfplan
+
+      - name: Terraform Destroy
+        if: inputs.action == 'destroy'
+        working-directory: ${{ env.TF_DIR }}
+        run: terraform destroy -auto-approve
+
+      - name: Extract outputs
+        if: inputs.action == 'apply'
+        id: outputs
+        working-directory: ${{ env.TF_DIR }}
+        run: |
+          INSTANCE_IP=$(terraform output -json instance_ips | jq -r '.chris')
+          SSLIP_DOMAIN=$(terraform output -json sslip_domains | jq -r '.chris')
+
+          echo "instance_ip=${INSTANCE_IP}" >> "$GITHUB_OUTPUT"
+          echo "sslip_domain=${SSLIP_DOMAIN}" >> "$GITHUB_OUTPUT"
+
+          terraform output -json ssh_private_keys | jq -r '.chris' > /tmp/ssh_key.pem
+          chmod 600 /tmp/ssh_key.pem
+
+      - name: Set deploy secrets
+        if: inputs.action == 'apply'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "→ Setting DEPLOY_HOST and DEPLOY_SSH_KEY secrets"
+          echo -n "${{ steps.outputs.outputs.instance_ip }}" | gh secret set DEPLOY_HOST
+          cat /tmp/ssh_key.pem | gh secret set DEPLOY_SSH_KEY
+          echo "✓ Deploy secrets updated"
+
+      - name: Wait for VM startup
+        if: inputs.action == 'apply'
+        run: |
+          echo "→ Waiting 180s for VM startup script to complete..."
+          sleep 180
+
+      - name: Verify VM is reachable
+        if: inputs.action == 'apply'
+        run: |
+          echo "→ Checking SSH connectivity..."
+          for i in $(seq 1 6); do
+            if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 \
+              -i /tmp/ssh_key.pem \
+              "chris@${{ steps.outputs.outputs.instance_ip }}" \
+              "echo 'SSH OK'" 2>/dev/null; then
+              echo "✓ VM is reachable via SSH"
+              exit 0
+            fi
+            echo "  Attempt ${i}/6 failed, waiting 30s..."
+            sleep 30
+          done
+          echo "✗ VM not reachable after 6 attempts"
+          exit 1
+
+      - name: Summary
+        if: inputs.action == 'apply'
+        run: |
+          DOMAIN="${{ steps.outputs.outputs.sslip_domain }}"
+          {
+            echo "## Infrastructure Deployed"
+            echo ""
+            echo "- **IP:** \`${{ steps.outputs.outputs.instance_ip }}\`"
+            echo "- **Domain:** \`https://${DOMAIN}\`"
+            echo ""
+            echo "### Required manual step"
+            echo "Update the OAuth redirect URI in [Google Cloud Console](https://console.cloud.google.com/apis/credentials?project=${{ secrets.GCP_PROJECT_ID }}):"
+            echo "\`\`\`"
+            echo "https://${DOMAIN}/oauth2/callback"
+            echo "\`\`\`"
+            echo ""
+            echo "### Access"
+            echo "Open \`https://${DOMAIN}\` — Google login should appear."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Cleanup
+        if: always()
+        run: rm -f /tmp/ssh_key.pem
