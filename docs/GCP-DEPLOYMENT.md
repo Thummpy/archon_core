@@ -121,10 +121,10 @@ Store this key securely (e.g., as a GitHub Actions secret). Do not commit it to 
 Wait 3-5 minutes after `terraform apply` for the startup script to finish installing Docker and starting Archon.
 
 ```bash
-ssh -i archon-chris.pem chris@caldwell.ws@EXTERNAL_IP
+ssh -i archon-chris.pem chris@EXTERNAL_IP
 ```
 
-Replace `EXTERNAL_IP` with the IP from Step 4.
+Replace `EXTERNAL_IP` with the IP from Step 4 and `chris` with your SSH username (the map key from terraform.tfvars).
 
 ## Step 7: Verify Archon Is Running
 
@@ -152,7 +152,7 @@ sudo cat /var/log/archon-startup.log
 Archon runs on port 3000 inside the VM. The firewall only opens port 443, so you'll need to use an SSH tunnel to access the web UI:
 
 ```bash
-ssh -i archon-chris.pem -L 3000:localhost:3000 chris@caldwell.ws@EXTERNAL_IP
+ssh -i archon-chris.pem -L 3000:localhost:3000 chris@EXTERNAL_IP
 ```
 
 Then open **http://localhost:3000** in your browser.

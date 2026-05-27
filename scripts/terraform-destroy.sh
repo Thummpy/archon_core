@@ -53,7 +53,14 @@ main() {
   check_deps
 
   echo "→ Previewing resources to destroy..." >&2
-  terraform -chdir="${TERRAFORM_DIR}" plan -destroy
+  if ! terraform -chdir="${TERRAFORM_DIR}" plan -destroy; then
+    echo "✗ Terraform plan -destroy failed" >&2
+    echo "  Common causes:" >&2
+    echo "    - State locked by another terraform process" >&2
+    echo "    - GCP auth expired (run: gcloud auth application-default login)" >&2
+    echo "    - Network connectivity issue" >&2
+    exit 1
+  fi
 
   echo "" >&2
   echo "⚠ This will permanently destroy all Terraform-managed resources." >&2

@@ -59,6 +59,7 @@ apply_terraform() {
   echo "→ Applying Terraform plan..." >&2
   if ! terraform -chdir="${TERRAFORM_DIR}" apply tfplan; then
     echo "✗ Terraform apply failed" >&2
+    rm -f "${TERRAFORM_DIR}/tfplan"
     exit 1
   fi
   rm -f "${TERRAFORM_DIR}/tfplan"
@@ -68,7 +69,10 @@ apply_terraform() {
 show_outputs() {
   echo "" >&2
   echo "→ Instance IPs:" >&2
-  terraform -chdir="${TERRAFORM_DIR}" output -json instance_ips 2>/dev/null || true
+  if ! terraform -chdir="${TERRAFORM_DIR}" output -json instance_ips 2>&1; then
+    echo "  ⚠ Could not retrieve outputs (apply succeeded, but output command failed)" >&2
+    echo "  Run manually: cd terraform && terraform output instance_ips" >&2
+  fi
 }
 
 main() {

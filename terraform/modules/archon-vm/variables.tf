@@ -39,8 +39,19 @@ variable "image_project" {
 }
 
 variable "oauth_email" {
-  description = "Email address for SSH key user and OAuth whitelist"
+  description = "Email address for OAuth whitelist"
   type        = string
+}
+
+variable "ssh_username" {
+  description = "SSH username for the compute instance (alphanumeric, no special characters)"
+  type        = string
+  default     = "archon"
+
+  validation {
+    condition     = can(regex("^[a-z][a-z0-9-]*$", var.ssh_username))
+    error_message = "SSH username must start with a letter and contain only lowercase letters, numbers, and hyphens."
+  }
 }
 
 variable "github_repo_url" {
@@ -49,10 +60,15 @@ variable "github_repo_url" {
   default     = "https://github.com/Thummpy/archon_core.git"
 }
 
-variable "archon_version" {
-  description = "Archon Docker image tag to deploy"
-  type        = string
-  default     = "0.3.12"
+variable "disk_size_gb" {
+  description = "Boot disk size in GB for the compute instance"
+  type        = number
+  default     = 30
+
+  validation {
+    condition     = var.disk_size_gb >= 10 && var.disk_size_gb <= 10000
+    error_message = "Disk size must be between 10 and 10000 GB."
+  }
 }
 
 variable "secrets_map" {

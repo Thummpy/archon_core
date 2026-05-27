@@ -21,7 +21,7 @@ variable "oauth_email" {
 }
 
 variable "archon_instances" {
-  description = "Map of instance configurations — add entries to provision more VMs"
+  description = "Map of instance configurations — map keys become SSH usernames (see terraform.tfvars.example)"
   type = map(object({
     secrets_map = object({
       claude_oauth_token = string
@@ -29,14 +29,5 @@ variable "archon_instances" {
       discord_bot_token  = string
     })
   }))
-  default = {
-    chris = {
-      secrets_map = {
-        claude_oauth_token = "archon-chris-claude-oauth-token"
-        github_token       = "archon-chris-github-token"
-        discord_bot_token  = "archon-chris-discord-bot-token"
-      }
-    }
-  }
   sensitive = true
 }

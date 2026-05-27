@@ -84,8 +84,8 @@ locals {
       | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
 
     echo "→ Configuring Docker repository..."
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] \
-      https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
+    echo "deb [arch=$$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] \
+      https://download.docker.com/linux/ubuntu $$(lsb_release -cs) stable" \
       | tee /etc/apt/sources.list.d/docker.list > /dev/null
 
     echo "→ Installing Docker Engine..."
@@ -97,9 +97,30 @@ locals {
     systemctl enable docker
 
     echo "→ Retrieving secrets from Secret Manager..."
-    CLAUDE_CODE_OAUTH_TOKEN=$(gcloud secrets versions access latest --secret="${var.secrets_map.claude_oauth_token}")
-    GITHUB_TOKEN=$(gcloud secrets versions access latest --secret="${var.secrets_map.github_token}")
-    DISCORD_BOT_TOKEN=$(gcloud secrets versions access latest --secret="${var.secrets_map.discord_bot_token}")
+
+    echo "  → Fetching claude_oauth_token..."
+    if ! CLAUDE_CODE_OAUTH_TOKEN=$$(gcloud secrets versions access latest --secret="${var.secrets_map.claude_oauth_token}" 2>&1); then
+      echo "✗ Failed to retrieve secret: ${var.secrets_map.claude_oauth_token}" >&2
+      echo "  Error: $$CLAUDE_CODE_OAUTH_TOKEN" >&2
+      echo "  Verify: secret exists, service account has secretmanager.secretAccessor, API enabled" >&2
+      exit 1
+    fi
+
+    echo "  → Fetching github_token..."
+    if ! GITHUB_TOKEN=$$(gcloud secrets versions access latest --secret="${var.secrets_map.github_token}" 2>&1); then
+      echo "✗ Failed to retrieve secret: ${var.secrets_map.github_token}" >&2
+      echo "  Error: $$GITHUB_TOKEN" >&2
+      exit 1
+    fi
+
+    echo "  → Fetching discord_bot_token..."
+    if ! DISCORD_BOT_TOKEN=$$(gcloud secrets versions access latest --secret="${var.secrets_map.discord_bot_token}" 2>&1); then
+      echo "✗ Failed to retrieve secret: ${var.secrets_map.discord_bot_token}" >&2
+      echo "  Error: $$DISCORD_BOT_TOKEN" >&2
+      exit 1
+    fi
+
+    echo "✓ All secrets retrieved successfully"
 
     echo "→ Cloning repository..."
     mkdir -p /opt/archon
@@ -108,19 +129,32 @@ locals {
 
     echo "→ Writing .env file..."
     cat > .env <<EOF
-    CLAUDE_CODE_OAUTH_TOKEN=$CLAUDE_CODE_OAUTH_TOKEN
-    GITHUB_TOKEN=$GITHUB_TOKEN
-    DISCORD_BOT_TOKEN=$DISCORD_BOT_TOKEN
-    PORT=3000
-    EOF
+CLAUDE_CODE_OAUTH_TOKEN=$$CLAUDE_CODE_OAUTH_TOKEN
+GITHUB_TOKEN=$$GITHUB_TOKEN
+DISCORD_BOT_TOKEN=$$DISCORD_BOT_TOKEN
+PORT=3000
+EOF
 
     echo "→ Creating data directory..."
     mkdir -p /opt/archon-data
     export HOME=/opt
 
     echo "→ Starting Archon..."
-    docker compose up -d
+    if ! docker compose up -d; then
+      echo "✗ docker compose up failed" >&2
+      echo "  Check Docker logs: docker compose logs" >&2
+      exit 1
+    fi
 
+    echo "→ Verifying container started..."
+    sleep 10
+    if ! docker ps | grep -q archon; then
+      echo "✗ Archon container not running after docker compose up" >&2
+      echo "  Container may have crashed. Check logs: docker compose logs app" >&2
+      exit 1
+    fi
+
+    echo "✓ Archon container running"
     echo "✓ Archon startup complete"
   SCRIPT
 }
@@ -139,7 +173,7 @@ resource "google_compute_instance" "archon_vm" {
   boot_disk {
     initialize_params {
       image = "projects/${var.image_project}/global/images/family/${var.image_family}"
-      size  = 30
+      size  = var.disk_size_gb
       type  = "pd-standard"
     }
   }
@@ -158,7 +192,7 @@ resource "google_compute_instance" "archon_vm" {
   }
 
   metadata = {
-    ssh-keys       = "${var.oauth_email}:${tls_private_key.ssh.public_key_openssh}"
+    ssh-keys       = "${var.ssh_username}:${tls_private_key.ssh.public_key_openssh}"
     enable-oslogin = "FALSE"
   }
 

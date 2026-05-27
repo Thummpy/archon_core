@@ -23,5 +23,6 @@ module "archon_vm" {
   zone          = var.gcp_zone
   instance_name = "archon-${each.key}"
   oauth_email   = var.oauth_email
+  ssh_username  = each.key
   secrets_map   = each.value.secrets_map
 }
