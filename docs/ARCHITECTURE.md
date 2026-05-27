@@ -62,8 +62,6 @@ Local-only deployment. Each developer runs their own Archon instance on their ma
 - **DNS:** `8.8.8.8, 8.8.4.4` on the app container (required for external API calls from within the container)
 - **Restart policy:** `unless-stopped` on all containers
 
-See `.claude/docs/deployment.md` for operational procedures.
-
 ## Security Architecture
 
 - **Authentication:** OAuth token stored in `.env` file, which is `.gitignore`'d and never committed. Token generated via `claude setup-token` on the host. Authenticates against Anthropic API using the developer's Max subscription.
