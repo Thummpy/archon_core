@@ -172,6 +172,8 @@ EOF
       exit 1
     fi
 
+    chown -R "$USERNAME:$USERNAME" "$USER_HOME/.docker" 2>/dev/null || true
+
     echo "→ Waiting for containers to stabilize (30s)..."
     sleep 30
 

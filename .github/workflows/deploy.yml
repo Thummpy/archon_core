@@ -75,6 +75,9 @@ jobs:
           done
           echo "✓ All required tools available"
 
+          echo "→ Fixing Docker config permissions"
+          sudo chown -R "$(whoami):$(whoami)" ~/.docker 2>/dev/null || true
+
           echo "→ Navigating to project directory"
           cd ~/archon_core
 
@@ -85,13 +88,26 @@ jobs:
           git log -1 --oneline
           git status --short
 
+          echo "→ Pulling latest images"
+          docker compose pull --ignore-buildable || true
+
           echo "→ Rebuilding and restarting containers"
-          docker compose up -d --build --pull always --wait --wait-timeout 120
+          docker compose up -d --build
+
+          echo "→ Waiting for containers to stabilize (15s)"
+          sleep 15
 
           echo "→ Verifying container health"
           docker compose ps
 
-          echo "✓ Deployment complete - all containers healthy"
+          echo "→ Verifying API health"
+          if ! docker compose exec -T app curl -sf --max-time 10 http://localhost:3000/api/health > /dev/null 2>&1; then
+            echo "✗ API health check failed"
+            docker compose logs --tail=50
+            exit 1
+          fi
+
+          echo "✓ Deployment complete - API is healthy"
           DEPLOY
 
       - name: Cleanup
