@@ -85,16 +85,16 @@ All scripts live in `scripts/` and are idempotent — safe to re-run.
 
 | Guide | Covers |
 |-------|--------|
-| [SETUP.md](docs/SETUP.md) | First-time install: Docker, OAuth, first `up` |
-| [DEPLOYMENT.md](docs/DEPLOYMENT.md) | Production deployment: GitHub secrets, SSH, GCP VM setup |
-| [DAILY-USE.md](docs/DAILY-USE.md) | Start/stop, web UI, CLI workflows, logs, troubleshooting tips |
-| [SHARING-WORKFLOWS.md](docs/SHARING-WORKFLOWS.md) | How `git pull` + restart delivers new workflows to the team |
-| [WORKFLOW-OVERLAY.md](docs/WORKFLOW-OVERLAY.md) | How custom workflows coexist with Archon's built-ins |
-| [SYNC-BETWEEN-MACHINES.md](docs/SYNC-BETWEEN-MACHINES.md) | *(deprecated)* rclone sync reference |
-| [UPGRADING.md](docs/UPGRADING.md) | Version bump procedure with backup safety |
-| [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common errors and fixes |
-| [TERRAFORM-SETUP.md](docs/TERRAFORM-SETUP.md) | Terraform installation and GCP auth |
-| [GCP-DEPLOYMENT.md](docs/GCP-DEPLOYMENT.md) | GCP VM provisioning with Terraform |
+| [**GCP-DEPLOY.md**](docs/GCP-DEPLOY.md) | **Start here** — end-to-end GCP deployment walkthrough |
+| [SETUP.md](docs/SETUP.md) | Reference: local Docker install and first `up` |
+| [DAILY-USE.md](docs/DAILY-USE.md) | Reference: web UI, logs, restart, troubleshooting tips |
+| [DEPLOYMENT.md](docs/DEPLOYMENT.md) | Reference: GitHub secrets, SSH, GCP VM setup |
+| [SHARING-WORKFLOWS.md](docs/SHARING-WORKFLOWS.md) | Reference: `git pull` + restart delivers new workflows |
+| [WORKFLOW-OVERLAY.md](docs/WORKFLOW-OVERLAY.md) | Reference: custom workflows coexist with built-ins |
+| [UPGRADING.md](docs/UPGRADING.md) | Reference: version bump procedure with backup safety |
+| [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Reference: common errors and fixes |
+| [TERRAFORM-SETUP.md](docs/TERRAFORM-SETUP.md) | Reference: Terraform installation and GCP auth |
+| [GCP-DEPLOYMENT.md](docs/GCP-DEPLOYMENT.md) | Reference: GCP VM provisioning with Terraform |
 
 ## Developing This Repo
 
