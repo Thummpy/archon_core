@@ -8,7 +8,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
-RUN curl -fsSL https://storage.googleapis.com/anthropic-release/claude/latest/install.sh | sh
+RUN curl -fsSL https://storage.googleapis.com/anthropic-release/claude/latest/install.sh | sh \
+    && CLAUDE_PATH=$(find /root -path "*/bin/claude" -type f 2>/dev/null | head -1) \
+    && echo "Found claude at: $CLAUDE_PATH" \
+    && cp "$CLAUDE_PATH" /usr/local/bin/claude \
+    && chmod +x /usr/local/bin/claude
 
 FROM python:3.12-slim-bullseye
 
