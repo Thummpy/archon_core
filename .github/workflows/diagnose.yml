@@ -1,0 +1,69 @@
+# One-off diagnostic workflow — SSH into VM and dump discord-bot logs.
+# Safe to delete after debugging.
+
+name: Diagnose Discord Bot
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Extract SSH credentials
+        id: tf
+        working-directory: terraform
+        run: |
+          terraform init -backend=true -input=false >/dev/null 2>&1
+          DEPLOY_HOST=$(terraform output -json instance_ips | jq -r '.chris')
+          terraform output -json ssh_private_keys | jq -r '.chris' > /tmp/key.pem
+          chmod 600 /tmp/key.pem
+          echo "host=${DEPLOY_HOST}" >> "$GITHUB_OUTPUT"
+
+      - name: Dump discord-bot diagnostics
+        env:
+          DEPLOY_HOST: ${{ steps.tf.outputs.host }}
+        run: |
+          ssh -o StrictHostKeyChecking=no -i /tmp/key.pem \
+            "chris@${DEPLOY_HOST}" bash -s <<'DIAG'
+          set -euo pipefail
+          cd ~/archon_core
+
+          echo "=== Container Status ==="
+          docker compose ps
+
+          echo ""
+          echo "=== Discord Bot Logs (last 50 lines) ==="
+          docker compose logs discord-bot --tail=50
+
+          echo ""
+          echo "=== Discord Bot Env Check ==="
+          docker compose exec -T discord-bot env | grep -E "CLAUDE|DISCORD|DATA_DIR|HOME" | sed 's/=.*/=<set>/'
+
+          echo ""
+          echo "=== Project Dir Check ==="
+          docker compose exec -T discord-bot ls -la /data/projects/Thummpy/dnd-context/source/ 2>&1 | head -10 || echo "NOT FOUND"
+
+          echo ""
+          echo "=== Claude CLI Check ==="
+          docker compose exec -T discord-bot claude --version 2>&1 || echo "CLAUDE CLI NOT FOUND"
+
+          echo ""
+          echo "=== File Permissions ==="
+          docker compose exec -T discord-bot ls -la /home/botuser/.claude/ 2>&1 | head -10 || echo "No .claude dir"
+          docker compose exec -T discord-bot id
+          DIAG
+
+      - name: Cleanup
+        if: always()
+        run: rm -f /tmp/key.pem
