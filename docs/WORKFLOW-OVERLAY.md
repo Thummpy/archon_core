@@ -43,7 +43,7 @@ Config is single-source: /.archon/config.yaml (rw). No overlay — host copy is 
 
 ### 1. Archon's workflow builder UI
 
-Open the Archon web interface at `http://localhost:3000` and use the workflow builder to create or edit a workflow (`Workflows → + New Workflow`). When the save completes fully, Archon writes the YAML through the read-write volume mount to your repo's `.archon/workflows/` directory **and** stores a record in SQLite (`~/archon-data/archon.db`).
+Open the Archon web interface at `https://localhost` and use the workflow builder to create or edit a workflow (`Workflows → + New Workflow`). When the save completes fully, Archon writes the YAML through the read-write volume mount to your repo's `.archon/workflows/` directory **and** stores a record in SQLite (`~/archon-data/archon.db`).
 
 **What you should see:** After a successful save, a new `.yaml` file appears on your machine under `.archon/workflows/`. Confirm with:
 
@@ -81,7 +81,7 @@ touch .archon/workflows/my-workflow.yaml
 docker compose restart app
 ```
 
-**What you should see:** The YAML file is present in the container filesystem (bind-mount confirmed), and the workflow **appears in the Workflows Web UI** at `http://localhost:3000/workflows`. In 0.3.12, Archon discovers YAML files at startup — confirmed in [`.claude/docs/smoke-tests.md`](../.claude/docs/smoke-tests.md) Test 30. The `archon` CLI binary is not in the container PATH by design (the upstream Dockerfile does not add it).
+**What you should see:** The YAML file is present in the container filesystem (bind-mount confirmed), and the workflow **appears in the Workflows Web UI** at `https://localhost/workflows`. In 0.3.12, Archon discovers YAML files at startup — confirmed in [`.claude/docs/smoke-tests.md`](../.claude/docs/smoke-tests.md) Test 30. The `archon` CLI binary is not in the container PATH by design (the upstream Dockerfile does not add it).
 
 ### 3. Claude Code with the Archon skill
 

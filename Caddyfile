@@ -1,0 +1,5 @@
+:443 {
+	tls internal
+
+	reverse_proxy oauth2-proxy:4180
+}

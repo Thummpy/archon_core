@@ -1,3 +1,7 @@
+> **DEPRECATED:** This document describes rclone sync functionality that was removed in favor of OAuth2-protected local-only deployment. The sync scripts (`sync-up.sh`, `sync-down.sh`) no longer exist. This document is kept for historical reference only.
+
+---
+
 # Sync Between Machines
 
 ## What you need before starting

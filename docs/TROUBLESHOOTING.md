@@ -98,7 +98,7 @@ docker compose up -d
 **Symptom:** `./scripts/health.sh` reports:
 
 ```
-✗ Archon API: unreachable (http://localhost:3000/api/health)
+✗ Archon API: unreachable (https://localhost/api/health)
 ```
 
 **Cause:** Most of the time this is a timing issue. Archon's Docker healthcheck has a
@@ -228,59 +228,6 @@ ensures the old version sees data it understands.
 
 ---
 
-## Sync failed — rclone remote not configured
-
-**Symptom:** `./scripts/sync-up.sh` or `./scripts/sync-down.sh` fails with:
-
-```
-✗ rclone remote 'gdrive:' is not configured. Run: rclone config
-```
-
-**Cause:** The rclone remote referenced in `RCLONE_REMOTE` (default: `gdrive:archon-data`) has
-not been configured on this machine.
-
-**Fix:** Run the rclone configuration wizard:
-
-```bash
-rclone config
-```
-
-Select "New remote", choose your provider type (e.g., `drive` for Google Drive), and complete the
-browser OAuth flow. See [docs/SYNC-BETWEEN-MACHINES.md](SYNC-BETWEEN-MACHINES.md) for full
-step-by-step rclone setup instructions.
-
----
-
-## Sync failed — other rclone errors
-
-**Symptom:** The sync script starts, reaches the rclone transfer step, then fails with a transfer
-error (not the "remote not configured" message above).
-
-**Common causes:**
-
-- Network connectivity issues during the transfer
-- Expired cloud storage OAuth token (common with Google Drive after several months)
-- Remote storage quota exceeded
-
-**Diagnosis:** Test connectivity to the remote directly:
-
-```bash
-rclone lsd gdrive:
-```
-
-Replace `gdrive` with your remote name. If this command fails, the problem is with the remote
-connection, not with Archon.
-
-**Fix — re-authenticate the remote:**
-
-```bash
-rclone config reconnect gdrive:
-```
-
-Or run `rclone config` and select the existing remote to reconfigure it from scratch.
-
----
-
 ## Permission denied on ~/archon-data
 
 **Symptom:** The Archon container fails to start and `docker compose logs app` shows:
@@ -336,7 +283,7 @@ not appear in the CLI or Web UI.
    include `description:`. Archon's workflow discovery system skips files without this field.
 
 4. **In 0.3.12, the workflow should appear in the Web UI after restart.** Archon
-   discovers YAML files at startup (confirmed — see [`.claude/docs/smoke-tests.md`](../.claude/docs/smoke-tests.md) Test 30). Open `http://localhost:3000/workflows`
+   discovers YAML files at startup (confirmed — see [`.claude/docs/smoke-tests.md`](../.claude/docs/smoke-tests.md) Test 30). Open `https://localhost/workflows`
    to confirm. You can also verify filesystem delivery with:
 
    ```bash

@@ -95,7 +95,26 @@ workflows, and operational scripts.
 
 **What you should see:** A new `archon-setup/` directory created in your current folder.
 
-## Step 5: Create your `.env` file
+## Step 5: Create Google OAuth2 Credentials
+
+Archon uses OAuth2 Proxy with Google authentication. You need to create OAuth2 credentials:
+
+1. Go to [Google Cloud Console - Credentials](https://console.cloud.google.com/apis/credentials)
+2. Create a new project (or select existing)
+3. Click **Create Credentials** → **OAuth client ID**
+4. Application type: **Web application**
+5. Name: `Archon Local`
+6. Authorized redirect URIs: `https://localhost/oauth2/callback`
+7. Click **Create**
+8. Copy the **Client ID** and **Client Secret** — you'll add these to `.env` in Step 6
+
+**What you should see:**
+- A dialog showing your Client ID and Client Secret
+- Keep this window open or save these values securely
+
+> **Important:** The redirect URI must be exactly `https://localhost/oauth2/callback` (no port number).
+
+## Step 6: Create your `.env` file
 
 ```bash
 cp .env.example .env
@@ -111,12 +130,15 @@ The variables available in `.env`:
 |---|---|---|
 | `CLAUDE_CODE_OAUTH_TOKEN` | OAuth token for Anthropic API access | Run `./scripts/setup-oauth.sh` — it writes this automatically |
 | `PORT` | Host port Archon binds to (default: `3000`) | Edit `.env` manually if port 3000 is already in use |
-| `RCLONE_REMOTE` | rclone remote for cross-machine sync | Configure with `rclone config` when setting up sync (optional) |
+| `OAUTH2_PROXY_CLIENT_ID` | Google OAuth2 client ID | Create at Google Cloud Console (Step 6 below) |
+| `OAUTH2_PROXY_CLIENT_SECRET` | Google OAuth2 client secret | Create at Google Cloud Console (Step 6 below) |
+| `OAUTH2_PROXY_COOKIE_SECRET` | Session encryption secret | Generate with `openssl rand -base64 32` |
+| `OAUTH_EMAIL` | Email allowed to access Archon (default: `chris@caldwell.ws`) | Edit `.env` manually |
 
 **What you should see:** A `.env` file exists in the repo root. Running `git status` shows
 no new tracked file — the entry is `.gitignore`'d.
 
-## Step 6: Generate your OAuth token
+## Step 7: Generate your OAuth token
 
 ```bash
 ./scripts/setup-oauth.sh
@@ -144,7 +166,7 @@ invocation generates a fresh token without overwriting other `.env` keys.
 Next: docker compose up -d
 ```
 
-## Step 7: Create the data directory
+## Step 8: Create the data directory
 
 ```bash
 mkdir -p ~/archon-data
@@ -168,7 +190,31 @@ drwxr-xr-x  ...  <your-username>  ...  archon-data
 
 Your username appears as the owner, not `root`.
 
-## Step 8: Pull the Archon image
+## Step 9: Configure OAuth2 Proxy
+
+Add your Google OAuth2 credentials from Step 5 to `.env`:
+
+```bash
+# Open .env in your text editor and set:
+OAUTH2_PROXY_CLIENT_ID=<your-google-client-id-from-step-5>
+OAUTH2_PROXY_CLIENT_SECRET=<your-google-client-secret-from-step-5>
+```
+
+Generate a cookie secret and add it to `.env`:
+
+```bash
+openssl rand -base64 32
+```
+
+**What you should see:** A 44-character random string — paste this as `OAUTH2_PROXY_COOKIE_SECRET` in `.env`.
+
+Optionally set your allowed email (defaults to `chris@caldwell.ws`):
+
+```bash
+OAUTH_EMAIL=your-email@gmail.com
+```
+
+## Step 10: Pull the Archon image
 
 ```bash
 docker compose pull
@@ -184,7 +230,7 @@ a hardcoded string here. On first pull, expect 1–3 minutes depending on connec
 ✔ app  Pulled
 ```
 
-## Step 9: Start Archon
+## Step 11: Start Archon
 
 ```bash
 docker compose up -d
@@ -201,7 +247,7 @@ separate terminal.
 ✔ Container archon-app  Started
 ```
 
-## Step 10: Verify the install
+## Step 12: Verify the install
 
 ```bash
 ./scripts/health.sh
@@ -226,12 +272,12 @@ ls .archon/workflows/
 
 **What you should see:** The directory may contain only `.gitkeep` if no custom workflows have been added yet — this is expected. The 20 built-in Archon workflows ship inside the Docker image and are always available without any files in this directory. If the command returns an error (no such directory or permission denied), the bind mount may not have taken effect — see [`docs/TROUBLESHOOTING.md`](TROUBLESHOOTING.md).
 
-Finally, open `http://localhost:3000` in your browser to access the Archon web UI.
+Finally, open `https://localhost` in your browser to access the Archon web UI.
 
-> **Archon is bound to `127.0.0.1:3000` (localhost only).** It is not reachable from other
-> devices on the network — `http://<your-LAN-IP>:3000` will not work. This is a deliberate
-> security property: binding to `0.0.0.0` would expose Archon to your local network without
-> authentication.
+> **First visit:** Your browser will show a security warning about the self-signed certificate.
+> This is expected — click **Advanced** → **Proceed to localhost (unsafe)** (Chrome) or
+> **Accept the Risk and Continue** (Firefox). You will then be redirected to Google OAuth to
+> sign in with your whitelisted email (`$OAUTH_EMAIL`).
 
 ## Next steps
 
@@ -240,8 +286,6 @@ Finally, open `http://localhost:3000` in your browser to access the Archon web U
   share them with the team via git.
 - **Daily commands** — starting, stopping, viewing logs, and restarting after a `git pull`;
   see [`docs/DAILY-USE.md`](DAILY-USE.md).
-- **Sync data across machines** — use `rclone` and the sync scripts; see
-  [`docs/SYNC-BETWEEN-MACHINES.md`](SYNC-BETWEEN-MACHINES.md).
 - **Upgrade the pinned version** — version bump procedure with backup safety; see
   [`docs/UPGRADING.md`](UPGRADING.md).
 

@@ -93,7 +93,7 @@ Errors appear as `[ERROR]` lines. If Archon fails to start, the container logs a
 
 ## Listing available workflows
 
-Browse available workflows in the Web UI at `http://localhost:3000/workflows`. In 0.3.12, this page shows both built-in workflows and any custom YAML files in `.archon/workflows/` — no CLI required.
+Browse available workflows in the Web UI at `https://localhost/workflows`. Your browser may show a self-signed certificate warning on first visit — accept it to proceed (see [docs/SETUP.md](SETUP.md) Step 12 for details). You will be prompted to sign in via Google OAuth before accessing the UI. In 0.3.12, this page shows both built-in workflows and any custom YAML files in `.archon/workflows/` — no CLI required.
 
 > **`archon workflow list` not available.** The `archon` binary is not in the container's PATH by design — the upstream Dockerfile does not add it, so the command exits with code 127.
 
@@ -128,13 +128,13 @@ These are available even when `.archon/workflows/` is empty — they ship inside
 
 Workflow execution requires the Web UI — the `archon` CLI binary is not in the container PATH by design (the upstream Dockerfile does not add it), so `archon workflow run` exits with code 127.
 
-Open `http://localhost:3000` in your browser.
+Open `https://localhost` in your browser.
 
-> If you changed the `PORT` variable in `.env`, use that port number instead: `http://localhost:<PORT>`.
+> Archon is accessed via `https://localhost` through Caddy and OAuth2 Proxy. Accept the self-signed certificate warning on first visit.
 
 **How to run a workflow:**
 
-1. Open `http://localhost:3000` in your browser.
+1. Open `https://localhost` in your browser.
 2. Navigate to the **Workflows** page (sidebar or `/workflows`).
 3. Click the workflow you want to run — for example, `archon-assist` for general tasks or `archon-fix-github-issue` for GitHub issue work.
 4. Type your request or task description in the chat input and press **Run** (or **Enter**).
@@ -149,7 +149,7 @@ Key pages in the Web UI:
 
 ## Checking workflow status
 
-All active workflow runs are visible in the Web UI at `http://localhost:3000`. Click a run to see its current status, live output, and any pending approval gates. Resume, approve, and reject operations are also handled in the Web UI — the `archon workflow resume/approve/reject` CLI commands are not available in the container.
+All active workflow runs are visible in the Web UI at `https://localhost`. Click a run to see its current status, live output, and any pending approval gates. Resume, approve, and reject operations are also handled in the Web UI — the `archon workflow resume/approve/reject` CLI commands are not available in the container.
 
 For container-level logs — useful when a run is not appearing in the Web UI or you want the raw output stream:
 
@@ -256,7 +256,7 @@ Wait 20 seconds and retry `./scripts/health.sh`. The healthcheck has a `start_pe
 
 ### Workflow not found
 
-Open `http://localhost:3000/workflows` — in 0.3.12, this page shows all available workflows including built-ins and any custom YAML files in `.archon/workflows/`. To confirm the file reached the container filesystem:
+Open `https://localhost/workflows` — in 0.3.12, this page shows all available workflows including built-ins and any custom YAML files in `.archon/workflows/`. To confirm the file reached the container filesystem:
 
 ```bash
 docker compose exec app ls /.archon/workflows/

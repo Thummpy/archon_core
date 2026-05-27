@@ -82,13 +82,12 @@ check_container() {
 }
 
 check_api() {
-  local port="${PORT:-${DEFAULT_PORT}}"
-  local url="http://localhost:${port}${HEALTH_ENDPOINT}"
-  echo "→ Checking API health (${url})..."
+  local url="https://localhost${HEALTH_ENDPOINT}"
+  echo "→ Checking API health (${url} via Caddy)..."
 
-  if curl -sf --max-time 5 "$url" &>/dev/null; then
+  if curl -sfk --max-time 5 "$url" &>/dev/null; then
     API_STATUS="OK"
-    echo "✓ Archon API: OK"
+    echo "✓ Archon API: OK (via Caddy reverse proxy)"
   else
     API_STATUS="unreachable"
     echo "✗ Archon API: unreachable (${url})"
@@ -98,12 +97,11 @@ check_api() {
 
 # Informational only — workflow count is never a health gate.
 check_workflows() {
-  local port="${PORT:-${DEFAULT_PORT}}"
-  local url="http://localhost:${port}${WORKFLOWS_ENDPOINT}"
-  echo "→ Checking loaded workflows..."
+  local url="https://localhost${WORKFLOWS_ENDPOINT}"
+  echo "→ Checking loaded workflows (via Caddy)..."
 
   local response count
-  if response=$(curl -sf --max-time 5 "$url" 2>/dev/null); then
+  if response=$(curl -sfk --max-time 5 "$url" 2>/dev/null); then
     count=$(printf '%s' "$response" | grep -o '"name":' | wc -l | tr -d ' ') || count="0"
     WORKFLOW_COUNT="${count}"
   else
