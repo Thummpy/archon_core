@@ -82,23 +82,12 @@ locals {
     apt-get update
 
     echo "→ Installing prerequisites..."
-    apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release jq
+    apt-get install -y ca-certificates curl jq
 
-    echo "→ Adding Docker GPG key..."
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
-      | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-
-    echo "→ Configuring Docker repository..."
-    ARCH=$$(dpkg --print-architecture)
-    CODENAME=$$(lsb_release -cs)
-    echo "deb [arch=$$ARCH signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $$CODENAME stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-    echo "→ Installing Docker Engine..."
-    apt-get update
-    apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
-
-    echo "→ Starting Docker..."
-    systemctl start docker
+    echo "→ Installing Docker via convenience script..."
+    curl -fsSL https://get.docker.com -o /tmp/get-docker.sh
+    sh /tmp/get-docker.sh
+    rm -f /tmp/get-docker.sh
     systemctl enable docker
 
     echo "→ Adding $$USERNAME to docker group..."
