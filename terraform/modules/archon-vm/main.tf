@@ -163,14 +163,16 @@ EOF
     mkdir -p "$USER_HOME/archon-data"
     chown -R "$USERNAME:$USERNAME" "$USER_HOME/archon_core" "$USER_HOME/archon-data"
 
-    echo "→ Building and starting Archon..."
+    echo "→ Starting Archon..."
     cd "$USER_HOME/archon_core"
     export HOME="$USER_HOME"
-    if ! docker compose up -d --build; then
+    if ! docker compose up -d; then
       echo "✗ docker compose up failed" >&2
       docker compose logs --tail=30 >&2
       exit 1
     fi
+
+    chown -R "$USERNAME:$USERNAME" "$USER_HOME/.docker" 2>/dev/null || true
 
     echo "→ Waiting for containers to stabilize (30s)..."
     sleep 30
