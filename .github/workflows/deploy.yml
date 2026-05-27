@@ -69,27 +69,13 @@ jobs:
           git log -1 --oneline
           git status --short
 
-          echo "→ Pulling latest Docker images"
-          docker compose pull
-
-          echo "→ Restarting containers with new images"
-          docker compose up -d
-
-          echo "→ Waiting for containers to stabilize (5s)"
-          sleep 5
+          echo "→ Rebuilding and restarting containers"
+          docker compose up -d --build --pull always --wait --wait-timeout 120
 
           echo "→ Verifying container health"
           docker compose ps
 
-          echo "→ Verifying API health"
-          if ! curl -sf --max-time 10 http://localhost:3000/api/health > /dev/null; then
-            echo "✗ API health check failed"
-            echo "→ Container logs:"
-            docker compose logs --tail=50
-            exit 1
-          fi
-
-          echo "✓ Deployment complete - API is healthy"
+          echo "✓ Deployment complete - all containers healthy"
           DEPLOY
 
       - name: Cleanup

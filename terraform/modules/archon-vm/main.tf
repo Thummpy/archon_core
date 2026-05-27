@@ -68,16 +68,21 @@ resource "google_compute_firewall" "allow_https" {
 # ---------------------------------------------------------------------------
 
 locals {
+  user_home = "/home/${var.ssh_username}"
+
   startup_script = <<-SCRIPT
     #!/bin/bash
     set -euo pipefail
     exec > /var/log/archon-startup.log 2>&1
 
+    USERNAME="${var.ssh_username}"
+    USER_HOME="${local.user_home}"
+
     echo "→ Updating package lists..."
     apt-get update
 
     echo "→ Installing prerequisites..."
-    apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release
+    apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release jq
 
     echo "→ Adding Docker GPG key..."
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
@@ -95,6 +100,9 @@ locals {
     echo "→ Starting Docker..."
     systemctl start docker
     systemctl enable docker
+
+    echo "→ Adding $$USERNAME to docker group..."
+    usermod -aG docker "$$USERNAME"
 
     echo "→ Retrieving secrets from Secret Manager..."
 
@@ -139,9 +147,7 @@ locals {
     echo "✓ All secrets retrieved successfully"
 
     echo "→ Cloning repository..."
-    mkdir -p /opt/archon
-    cd /opt/archon
-    git clone ${var.github_repo_url} .
+    sudo -u "$$USERNAME" git clone ${var.github_repo_url} "$$USER_HOME/archon_core"
 
     echo "→ Resolving sslip.io domain..."
     EXTERNAL_IP=$$(curl -s http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip -H "Metadata-Flavor: Google")
@@ -152,7 +158,7 @@ locals {
     OAUTH2_COOKIE_SECRET=$$(openssl rand -base64 32)
 
     echo "→ Writing .env file..."
-    cat > .env <<EOF
+    cat > "$$USER_HOME/archon_core/.env" <<EOF
 CLAUDE_CODE_OAUTH_TOKEN=$$CLAUDE_CODE_OAUTH_TOKEN
 GITHUB_TOKEN=$$GITHUB_TOKEN
 DISCORD_BOT_TOKEN=$$DISCORD_BOT_TOKEN
@@ -165,26 +171,31 @@ OAUTH_EMAIL=${var.oauth_email}
 EOF
 
     echo "→ Creating data directory..."
-    mkdir -p /opt/archon-data
-    export HOME=/opt
+    mkdir -p "$$USER_HOME/archon-data"
+    chown -R "$$USERNAME:$$USERNAME" "$$USER_HOME/archon_core" "$$USER_HOME/archon-data"
 
-    echo "→ Starting Archon..."
-    if ! docker compose up -d; then
+    echo "→ Building and starting Archon..."
+    cd "$$USER_HOME/archon_core"
+    export HOME="$$USER_HOME"
+    if ! docker compose up -d --build; then
       echo "✗ docker compose up failed" >&2
-      echo "  Check Docker logs: docker compose logs" >&2
+      docker compose logs --tail=30 >&2
       exit 1
     fi
 
-    echo "→ Verifying container started..."
-    sleep 10
-    if ! docker ps | grep -q archon; then
-      echo "✗ Archon container not running after docker compose up" >&2
-      echo "  Container may have crashed. Check logs: docker compose logs app" >&2
+    echo "→ Waiting for containers to stabilize (30s)..."
+    sleep 30
+
+    echo "→ Verifying containers..."
+    docker compose ps
+    if ! docker compose ps --format json | grep -q archon-app; then
+      echo "✗ archon-app not running" >&2
+      docker compose logs --tail=50 >&2
       exit 1
     fi
 
-    echo "✓ Archon container running"
     echo "✓ Archon startup complete"
+    echo "✓ Access at: https://$$ARCHON_DOMAIN"
   SCRIPT
 }
 

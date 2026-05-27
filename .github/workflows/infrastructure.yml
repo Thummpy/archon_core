@@ -114,8 +114,8 @@ jobs:
       - name: Wait for VM startup
         if: inputs.action == 'apply'
         run: |
-          echo "→ Waiting 180s for VM startup script to complete..."
-          sleep 180
+          echo "→ Waiting 300s for VM startup script to complete (Docker install + image builds)..."
+          sleep 300
 
       - name: Verify VM is reachable
         if: inputs.action == 'apply'
