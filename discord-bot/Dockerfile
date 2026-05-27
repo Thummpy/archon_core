@@ -20,9 +20,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
-COPY --from=builder /usr/local/bin/node /usr/local/bin/node
-COPY --from=builder /usr/local/lib/node_modules /usr/local/lib/node_modules
-RUN ln -s /usr/local/lib/node_modules/.bin/claude /usr/local/bin/claude
+COPY --from=builder /usr/bin/node /usr/bin/node
+COPY --from=builder /usr/lib/node_modules /usr/lib/node_modules
+RUN ln -s /usr/lib/node_modules/.bin/claude /usr/local/bin/claude
 
 RUN groupadd -g 1000 botuser && useradd -u 1000 -g botuser -m botuser
 RUN mkdir -p /home/botuser/.claude /data/threads /data/projects && chown -R botuser:botuser /data

@@ -74,7 +74,7 @@ services:
     volumes:
       - ./discord-bot:/app:ro
       - ./scripts/discord-bot-entrypoint.sh:/entrypoint.sh:ro
-      - ./.archon/commands:/.claude/commands:ro
+      - ${HOME}/archon-data/commands:/.claude/commands:ro
       - ${HOME}/archon-data/discord-bot:/data
       - ${HOME}/archon-data/claude-home:/home/botuser/.claude
     working_dir: /app
