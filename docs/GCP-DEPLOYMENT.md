@@ -91,18 +91,24 @@ Apply complete! Resources: 6 added, 0 changed, 0 destroyed.
 ✓ Terraform apply succeeded
 ```
 
-## Step 4: Get the VM's IP Address
+## Step 4: Get the VM's Domain and IP
 
 ```bash
-cd terraform && terraform output instance_ips
+cd terraform && terraform output sslip_domains
 ```
 
 **What you should see:**
 
 ```
 {
-  "chris" = "34.xxx.xxx.xxx"
+  "chris" = "34-xxx-xxx-xxx.sslip.io"
 }
+```
+
+You can also get the raw IP if needed:
+
+```bash
+cd terraform && terraform output instance_ips
 ```
 
 ## Step 5: Save the SSH Private Key
@@ -116,19 +122,31 @@ chmod 600 archon-chris.pem
 
 Store this key securely (e.g., as a GitHub Actions secret). Do not commit it to version control.
 
-## Step 6: SSH to the VM
+## Step 6: Access Archon
 
-Wait 3-5 minutes after `terraform apply` for the startup script to finish installing Docker and starting Archon.
+Wait 3-5 minutes after `terraform apply` for the startup script to finish installing Docker, starting Archon, and provisioning the TLS certificate.
+
+Open the sslip.io domain from Step 4 in your browser:
+
+```
+https://34-xxx-xxx-xxx.sslip.io
+```
+
+Replace `34-xxx-xxx-xxx` with your actual IP (dashes instead of dots). OAuth will prompt you to sign in with the email address configured in `terraform.tfvars`.
+
+## Step 7: Admin SSH Access
+
+For troubleshooting or admin tasks, SSH to the VM using the IP from Step 4:
 
 ```bash
 ssh -i archon-chris.pem chris@EXTERNAL_IP
 ```
 
-Replace `EXTERNAL_IP` with the IP from Step 4 and `chris` with your SSH username (the map key from terraform.tfvars).
+Replace `EXTERNAL_IP` with the raw IP address and `chris` with your SSH username (the map key from terraform.tfvars).
 
-## Step 7: Verify Archon Is Running
+## Step 8: Verify Archon Is Running
 
-On the VM:
+On the VM (via SSH):
 
 ```bash
 sudo docker ps
@@ -146,16 +164,6 @@ Check the startup log if the container isn't running:
 ```bash
 sudo cat /var/log/archon-startup.log
 ```
-
-## Step 8: Access Archon
-
-Archon runs on port 3000 inside the VM. The firewall only opens port 443, so you'll need to use an SSH tunnel to access the web UI:
-
-```bash
-ssh -i archon-chris.pem -L 3000:localhost:3000 chris@EXTERNAL_IP
-```
-
-Then open **http://localhost:3000** in your browser.
 
 ## Adding More Instances
 

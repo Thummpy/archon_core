@@ -127,11 +127,17 @@ locals {
     cd /opt/archon
     git clone ${var.github_repo_url} .
 
+    echo "→ Resolving sslip.io domain..."
+    EXTERNAL_IP=$$(curl -s http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip -H "Metadata-Flavor: Google")
+    ARCHON_DOMAIN=$$(echo $$EXTERNAL_IP | tr '.' '-').sslip.io
+    echo "  Domain: $$ARCHON_DOMAIN"
+
     echo "→ Writing .env file..."
     cat > .env <<EOF
 CLAUDE_CODE_OAUTH_TOKEN=$$CLAUDE_CODE_OAUTH_TOKEN
 GITHUB_TOKEN=$$GITHUB_TOKEN
 DISCORD_BOT_TOKEN=$$DISCORD_BOT_TOKEN
+ARCHON_DOMAIN=$$ARCHON_DOMAIN
 PORT=3000
 EOF
 
