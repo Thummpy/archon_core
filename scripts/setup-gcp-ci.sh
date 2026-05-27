@@ -73,6 +73,7 @@ ROLES=(
   "roles/iam.serviceAccountAdmin"
   "roles/iam.serviceAccountUser"
   "roles/storage.admin"
+  "roles/resourcemanager.projectIamAdmin"
 )
 
 echo "→ Granting IAM roles..."
