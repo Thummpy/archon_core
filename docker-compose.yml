@@ -69,6 +69,36 @@ services:
     depends_on:
       - app
 
+  discord-bot:
+    build:
+      context: ./discord-bot
+    container_name: archon-discord-bot
+    env_file: .env
+    environment:
+      DISCORD_BOT_TOKEN: "${DISCORD_BOT_TOKEN:-}"
+      DISCORD_SERVER_ID: "${DISCORD_SERVER_ID:-1509185927505907715}"
+      CLAUDE_CODE_OAUTH_TOKEN: "${CLAUDE_CODE_OAUTH_TOKEN}"
+      ARCHON_DOCKER: "true"
+    volumes:
+      - ./discord-bot:/app:ro
+      - ./scripts/discord-bot-entrypoint.sh:/entrypoint.sh:ro
+      - ./.archon/commands:/.claude/commands:ro
+      - ${HOME}/archon-data/discord-bot:/data
+      - ${HOME}/archon-data/claude-home:/home/botuser/.claude
+    working_dir: /app
+    entrypoint: ["/bin/bash", "/entrypoint.sh"]
+    networks:
+      - archon-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "python3 /app/healthcheck.py || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    depends_on:
+      - app
+
   caddy:
     image: caddy:2.9-alpine
     container_name: archon-caddy
