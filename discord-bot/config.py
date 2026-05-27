@@ -33,7 +33,7 @@ DATA_DIR = os.environ.get("DATA_DIR", "/data")
 COMMANDS_DIR = os.environ.get("COMMANDS_DIR", "/.claude/commands")
 
 CHANNEL_MAP = {
-    "dnd-context": "Thummpy/dnd-context",
+    "dnd-context": "Thummpy/dnd-context/source",
 }
 
 # Archive threads after 100 messages to prevent excessive context length
