@@ -79,6 +79,10 @@ jobs:
           echo "→ Fixing Docker config permissions"
           sudo chown -R "$(whoami):$(whoami)" ~/.docker 2>/dev/null || true
 
+          echo "→ Fixing data directory permissions for discord-bot (uid 1000)"
+          sudo chown -R 1000:1000 ~/archon-data/discord-bot 2>/dev/null || true
+          sudo chown -R 1000:1000 ~/archon-data/claude-home 2>/dev/null || true
+
           echo "→ Navigating to project directory"
           cd ~/archon_core
 
