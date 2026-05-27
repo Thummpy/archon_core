@@ -68,12 +68,12 @@ else
 fi
 
 ROLES=(
-  "roles/compute.admin"
-  "roles/secretmanager.admin"
-  "roles/iam.serviceAccountAdmin"
-  "roles/iam.serviceAccountUser"
-  "roles/storage.admin"
-  "roles/resourcemanager.projectIamAdmin"
+  "roles/compute.admin"            # Create/manage VMs
+  "roles/secretmanager.admin"      # Read secrets for VM startup script
+  "roles/iam.serviceAccountAdmin"  # Create per-VM service accounts
+  "roles/iam.serviceAccountUser"   # Attach service accounts to VMs
+  "roles/storage.admin"            # Terraform state bucket (GCS)
+  "roles/resourcemanager.projectIamAdmin"  # Terraform grants IAM bindings to VM SAs
 )
 
 echo "→ Granting IAM roles..."

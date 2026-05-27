@@ -36,12 +36,38 @@ jobs:
         working-directory: terraform
         run: |
           terraform init -backend=true -input=false >/dev/null 2>&1
-          DEPLOY_HOST=$(terraform output -json instance_ips | jq -r '.chris')
+
+          DEPLOY_HOST=$(terraform output -json instance_ips 2>/dev/null | jq -r '.chris // empty') || true
+          if [ -z "$DEPLOY_HOST" ] || [ "$DEPLOY_HOST" = "null" ]; then
+            echo "::warning::No VM found in Terraform state — skipping deploy"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           terraform output -json ssh_private_keys | jq -r '.chris' > /tmp/deploy_key.pem
           chmod 600 /tmp/deploy_key.pem
           echo "host=${DEPLOY_HOST}" >> "$GITHUB_OUTPUT"
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+
+      - name: Verify VM is ready
+        if: steps.tf.outputs.ready == 'true'
+        id: precheck
+        env:
+          DEPLOY_HOST: ${{ steps.tf.outputs.host }}
+        run: |
+          if ! ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 \
+            -i /tmp/deploy_key.pem \
+            "chris@${DEPLOY_HOST}" \
+            "test -f /var/log/archon-startup-complete && command -v docker >/dev/null" 2>/dev/null; then
+            echo "::warning::VM is not ready (startup incomplete or Docker missing) — skipping deploy"
+            echo "vm_ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "✓ VM is ready — proceeding with deploy"
+            echo "vm_ready=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Deploy to GCP VM via SSH
+        if: steps.tf.outputs.ready == 'true' && steps.precheck.outputs.vm_ready == 'true'
         env:
           DEPLOY_HOST: ${{ steps.tf.outputs.host }}
         run: |
@@ -49,31 +75,6 @@ jobs:
             -i /tmp/deploy_key.pem \
             "chris@${DEPLOY_HOST}" bash -s <<'DEPLOY'
           set -euo pipefail
-
-          echo "→ Checking required tools"
-          for cmd in git docker; do
-            if ! command -v "$cmd" &>/dev/null; then
-              echo "✗ $cmd not found, checking if startup script is still running..."
-              if [ -f /var/log/archon-startup.log ] && [ ! -f /var/log/archon-startup-complete ]; then
-                echo "→ Startup script still in progress, waiting up to 5 min..."
-                for attempt in $(seq 1 10); do
-                  sleep 30
-                  if command -v "$cmd" &>/dev/null; then
-                    echo "✓ $cmd now available (attempt $attempt)"
-                    break 2
-                  fi
-                  echo "  Attempt $attempt/10 — still waiting..."
-                done
-              fi
-              if ! command -v "$cmd" &>/dev/null; then
-                echo "✗ Required tool not found: $cmd"
-                echo "→ Startup log (last 30 lines):"
-                sudo cat /var/log/archon-startup.log 2>/dev/null | tail -30 || echo "  No startup log found"
-                exit 1
-              fi
-            fi
-          done
-          echo "✓ All required tools available"
 
           echo "→ Fixing Docker config permissions"
           sudo chown -R "$(whoami):$(whoami)" ~/.docker 2>/dev/null || true
@@ -117,10 +118,19 @@ jobs:
       - name: Deployment Summary
         if: always()
         run: |
+          if [ "${{ steps.tf.outputs.ready }}" != "true" ]; then
+            STATUS="⏭️ Skipped (no VM in Terraform state)"
+          elif [ "${{ steps.precheck.outputs.vm_ready }}" != "true" ]; then
+            STATUS="⏭️ Skipped (VM not ready)"
+          elif [ "${{ job.status }}" = "success" ]; then
+            STATUS="✅ Success"
+          else
+            STATUS="❌ Failed"
+          fi
           {
             echo "## Deploy to Production VM"
-            echo "- **Status:** ${{ job.status == 'success' && '✅ Success' || '❌ Failed' }}"
-            echo "- **Host:** \`${{ steps.tf.outputs.host }}\`"
+            echo "- **Status:** ${STATUS}"
+            echo "- **Host:** \`${{ steps.tf.outputs.host || 'N/A' }}\`"
             echo "- **Commit:** \`${{ github.sha }}\`"
             echo "- **Branch:** \`${{ github.ref_name }}\`"
             echo "- **Triggered by:** ${{ github.event_name }}"
