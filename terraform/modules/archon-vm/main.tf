@@ -140,7 +140,7 @@ locals {
 
     echo "→ Resolving sslip.io domain..."
     EXTERNAL_IP=$(curl -s http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip -H "Metadata-Flavor: Google")
-    ARCHON_DOMAIN=$(echo $EXTERNAL_IP | tr '.' '-').sslip.io
+    ARCHON_DOMAIN=$(echo "$EXTERNAL_IP" | tr '.' '-').sslip.io
     echo "  Domain: $ARCHON_DOMAIN"
 
     echo "→ Generating OAuth2 cookie secret..."

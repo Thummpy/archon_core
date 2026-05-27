@@ -1,7 +1,3 @@
-# CI validation workflow
-# Bash/Docker project — no language runtime setup needed.
-# shellcheck is pre-installed on ubuntu-latest.
-
 name: Validate
 
 on:
@@ -16,8 +12,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install shellcheck
-        run: sudo apt-get install -y shellcheck
+      - name: Shellcheck
+        run: |
+          if compgen -G "scripts/*.sh" > /dev/null; then
+            shellcheck scripts/*.sh
+          else
+            echo "No scripts to check"
+          fi
 
-      - name: Run validation
-        run: .claude/scripts/validate.sh
+      - name: Validate docker-compose
+        run: |
+          if [ -f docker-compose.yml ]; then
+            if [ ! -f .env ] && [ -f .env.example ]; then
+              cp .env.example .env
+              trap 'rm -f .env' EXIT
+            fi
+            docker compose config --quiet
+          fi
