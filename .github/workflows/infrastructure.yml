@@ -111,16 +111,6 @@ jobs:
           terraform output -json ssh_private_keys | jq -r '.chris' > /tmp/ssh_key.pem
           chmod 600 /tmp/ssh_key.pem
 
-      - name: Set deploy secrets
-        if: inputs.action == 'apply'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "→ Setting DEPLOY_HOST and DEPLOY_SSH_KEY secrets"
-          echo -n "${{ steps.outputs.outputs.instance_ip }}" | gh secret set DEPLOY_HOST
-          cat /tmp/ssh_key.pem | gh secret set DEPLOY_SSH_KEY
-          echo "✓ Deploy secrets updated"
-
       - name: Wait for VM startup
         if: inputs.action == 'apply'
         run: |
