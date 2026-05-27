@@ -13,6 +13,8 @@ How to deploy Archon to a GCP VM with OAuth2 authentication, automated GitHub Ac
 - **A Google account** for OAuth2 sign-in (the email you'll use to access Archon)
 - About **45–60 minutes** for first-time setup
 
+> **Operational knowledge:** See [INFRASTRUCTURE-ISSUES.md](INFRASTRUCTURE-ISSUES.md) for documented gotchas (Terraform heredoc escaping, Docker permissions, startup timing) that may save debugging time during deployment.
+
 ### Understanding terraform.tfvars
 
 Before you begin, you need `terraform/terraform.tfvars` populated. Copy the example and edit it:
@@ -45,6 +47,8 @@ archon_instances = {
 ```
 
 The `secrets_map` values are the **names** you'll give your secrets in GCP Secret Manager (Step 3). Terraform reads the secret values at deploy time using these names. The map key (`chris` in this example) becomes your SSH username and is used in resource naming.
+
+> **Discord bot auto-start:** The Discord bot service starts automatically with `docker compose up -d`. If you don't need Discord integration, you can leave `discord_bot_token` as an empty string in Secret Manager (create the secret with value `""`), or see [DISCORD-BOT-SETUP.md](DISCORD-BOT-SETUP.md) for opt-out instructions. For full Discord setup, complete [DISCORD-BOT-SETUP.md](DISCORD-BOT-SETUP.md) before deploying to GCP.
 
 ## Step 1: Set Up Google OAuth Client
 
@@ -556,6 +560,16 @@ Common causes:
 
 - **Missing or invalid Client ID/Secret** — verify the OAuth2 credentials in the `.env` file on the VM match what's in Google Cloud Console
 - **Cookie secret not set** — ensure `OAUTH2_PROXY_COOKIE_SECRET` is set in `.env` on the VM
+
+### Terraform heredoc or Docker permission errors
+
+See [INFRASTRUCTURE-ISSUES.md](INFRASTRUCTURE-ISSUES.md) for documented solutions to:
+
+- **Terraform heredoc escaping** — `${VAR}` vs `$VAR` in startup scripts
+- **Docker config permissions** — `~/.docker/config.json` owned by root
+- **Startup script timing** — containers need stabilization time after `docker compose up -d`
+
+These are operational gotchas that have known workarounds documented in detail.
 
 ## Something went wrong?
 

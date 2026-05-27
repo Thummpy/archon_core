@@ -73,13 +73,22 @@ started).
 
 ## Step 5: Start the Bot
 
-From the archon-setup directory:
+The Discord bot **auto-starts** when you run `docker compose up -d` (it runs alongside the main Archon service). If you've already started Archon, the bot is likely already running.
+
+Verify it's running:
 
 ```bash
-docker compose up -d discord-bot
+docker compose ps discord-bot
 ```
 
-Check that it started successfully:
+**What you should see:**
+
+```
+NAME                 STATUS
+archon-discord-bot   Up ... (healthy)
+```
+
+Check the startup logs:
 
 ```bash
 docker compose logs discord-bot
@@ -90,6 +99,30 @@ docker compose logs discord-bot
 ```
 [discord-bot] Token validated, starting bot...
 ✓ Bot connected to Discord as YourBotName#1234
+```
+
+### Opt-Out (Advanced)
+
+If you don't want the Discord bot to auto-start, add a profile to `docker-compose.yml`:
+
+```yaml
+discord-bot:
+  profiles:
+    - discord  # Add this line
+  build:
+    context: ./discord-bot
+```
+
+Then start services without the bot:
+
+```bash
+docker compose up -d  # Starts app and oauth2-proxy, skips discord-bot
+```
+
+To start the bot later:
+
+```bash
+docker compose --profile discord up -d
 ```
 
 ## Step 6: Verify It Works
@@ -170,5 +203,13 @@ the Claude Code CLI is installed correctly inside the container:
 ```bash
 docker compose exec discord-bot claude --version
 ```
+
+**What you should see:**
+
+```
+@anthropic-ai/claude-code x.x.x
+```
+
+> **Note:** The Discord bot Dockerfile installs Claude CLI via npm (`npm install -g @anthropic-ai/claude-code`) with Node.js 20.x. If the container builds successfully but `claude --version` fails, check the build logs: `docker compose logs discord-bot --tail 50`.
 
 For other issues, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md).

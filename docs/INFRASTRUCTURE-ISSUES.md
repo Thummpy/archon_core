@@ -28,14 +28,14 @@ SCRIPT
 
 **Root Cause:** Docker Compose returns immediately after starting containers. Services with health checks (30s interval, 15s start period) may not be healthy yet when subsequent verification commands run.
 
-**Solution Applied:** The startup script in `terraform/modules/archon-vm/main.tf:177` includes a 30-second sleep after `docker compose up -d`:
+**Solution Applied:** The startup script in `terraform/modules/archon-vm/main.tf:177-178` includes a 30-second sleep after `docker compose up -d`:
 
 ```bash
 echo "→ Waiting for containers to stabilize (30s)..."
 sleep 30
 ```
 
-The deploy workflow (`.github/workflows/deploy.yml:98`) uses a 15-second sleep since containers are restarting (not cold-starting).
+The deploy workflow (`.github/workflows/deploy.yml:98-99`) uses a 15-second sleep since containers are restarting (not cold-starting).
 
 **Guidance:** The 30s delay is conservative but reliable for initial provisioning. Do not remove it. If adding new services with longer startup times, increase the delay proportionally.
 
