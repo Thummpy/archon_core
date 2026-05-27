@@ -1,16 +1,13 @@
-# Deployment workflow stub
-# =======================
-# archon-setup is a local-only Docker project — there is no cloud deployment.
-# "Deployment" is `docker compose up -d` on each developer's machine.
-#
-# This workflow is retained as a stub for future use if cloud deployment
-# is added. It currently only prepares a deployment artifact using .deployignore.
+# Deploy to GCP VM via SSH on push to main or manual trigger.
+# Pulls latest code, updates Docker images, and restarts containers.
+# Data volumes (~/archon-data) are NOT touched — only containers are replaced.
 
 name: Deploy
 
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 # Prevent concurrent deploys
 concurrency:
@@ -20,23 +17,39 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    # environment: production
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Prepare deployment artifact
-        run: |
-          mkdir -p _deploy
-          rsync -av --exclude-from=.deployignore ./ _deploy/
-          echo "::group::Deployment artifact contents"
-          find _deploy -maxdepth 3 -type f | sort
-          echo "::endgroup::"
+      - name: Deploy to GCP VM via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: chris
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script_stop: true
+          script: |
+            set -e
+            echo "→ Navigating to project directory"
+            cd ~/archon_core
 
-      - name: Summary
+            echo "→ Pulling latest code from main"
+            git pull
+
+            echo "→ Pulling latest Docker images"
+            docker compose pull
+
+            echo "→ Restarting containers with new images"
+            docker compose up -d
+
+            echo "✓ Deployment complete"
+
+      - name: Deployment Summary
+        if: always()
         run: |
-          echo "## Deploy" >> $GITHUB_STEP_SUMMARY
+          echo "## Deploy to Production VM" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Status:** Local-only project — no cloud deployment configured" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Timestamp:** $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
