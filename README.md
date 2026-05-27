@@ -94,7 +94,7 @@ All scripts live in `scripts/` and are idempotent — safe to re-run.
 | [UPGRADING.md](docs/UPGRADING.md) | Version bump procedure with backup safety |
 | [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common errors and fixes |
 | [TERRAFORM-SETUP.md](docs/TERRAFORM-SETUP.md) | Terraform installation and GCP auth |
-| [GCP-DEPLOYMENT.md](docs/GCP-DEPLOYMENT.md) | GCP VM provisioning with Terraform |
+| [GCP-DEPLOYMENT.md](docs/GCP-DEPLOYMENT.md) | OAuth, Terraform deployment, GitHub Actions, operations |
 
 ## Developing This Repo
 

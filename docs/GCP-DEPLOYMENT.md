@@ -66,12 +66,12 @@ Archon uses OAuth2 Proxy with Google authentication to protect the web UI. You n
    ```
    https://placeholder.sslip.io/oauth2/callback
    ```
-   You'll update this with your actual IP after Terraform creates the VM (Step 6).
+   You'll update this with your actual IP after Terraform creates the VM (Step 7).
 8. Click **Create**
 
 **What you should see:**
 
-A dialog showing your **Client ID** and **Client Secret**. Copy both values and save them securely — you'll need the Client ID when configuring GitHub Actions secrets (Step 6).
+A dialog showing your **Client ID** and **Client Secret**. Copy both values and save them securely — you'll need them when configuring OAuth2 on the VM (Step 5).
 
 > **Why a placeholder URI?** The actual static IP is assigned by Terraform in Step 4. You'll come back to update the redirect URI with the real domain in Step 6.
 
@@ -164,7 +164,88 @@ Apply complete! Resources: 6 added, 0 changed, 0 destroyed.
 
 Terraform creates a VM, a static IP, a firewall rule (HTTPS only), an SSH key pair, a service account, and grants it Secret Manager access. The VM's startup script automatically installs Docker, clones the repository, pulls secrets from Secret Manager, and starts Archon.
 
-## Step 5: Get the VM's Static IP and Domain
+## Step 5: Configure OAuth2 Credentials on the VM
+
+The VM is running but OAuth2 authentication is not yet configured. SSH to the VM and add the OAuth2 credentials to the `.env` file.
+
+### Extract the SSH key
+
+```bash
+cd terraform && terraform output -raw ssh_private_keys | jq -r '.chris' > archon-chris.pem
+chmod 600 archon-chris.pem
+```
+
+**What you should see:** A PEM-encoded private key file created in the `terraform/` directory.
+
+> **Security:** Never commit `archon-chris.pem` to version control. This private key grants SSH access to your production VM. The `terraform/` directory is already in `.gitignore` to prevent accidental commits.
+
+### Get the VM's IP address
+
+```bash
+cd terraform && terraform output instance_ips
+```
+
+**What you should see:**
+
+```
+{
+  "chris" = "34.123.45.67"
+}
+```
+
+Copy the IP address shown (e.g., `34.123.45.67`).
+
+### SSH to the VM
+
+```bash
+ssh -i archon-chris.pem chris@34.123.45.67
+```
+
+Replace `34.123.45.67` with your actual IP and `chris` with your instance name.
+
+### Update the .env file
+
+Once connected to the VM:
+
+```bash
+cd ~/archon_core
+
+# Generate a cookie secret
+COOKIE_SECRET=$(openssl rand -base64 32)
+
+# Add OAuth2 credentials to .env
+cat >> .env <<EOF
+
+# OAuth2 Proxy configuration
+OAUTH2_PROXY_CLIENT_ID=your-client-id-from-step-1
+OAUTH2_PROXY_CLIENT_SECRET=your-client-secret-from-step-1
+OAUTH2_PROXY_COOKIE_SECRET=$COOKIE_SECRET
+OAUTH_EMAIL=your-email@example.com
+EOF
+```
+
+Replace:
+- `your-client-id-from-step-1` with the Client ID from Step 1
+- `your-client-secret-from-step-1` with the Client Secret from Step 1
+- `your-email@example.com` with the email from `terraform.tfvars` `oauth_email`
+
+### Restart containers
+
+```bash
+docker compose restart
+```
+
+**What you should see:** Containers restart successfully. Verify with `docker compose ps` - all containers should show "Up" status.
+
+### Exit SSH
+
+```bash
+exit
+```
+
+You're back on your local machine. Continue to Step 6.
+
+## Step 6: Get the VM's Static IP and Domain
 
 ```bash
 cd terraform && terraform output sslip_domains
@@ -196,7 +277,7 @@ cd terraform && terraform output instance_ips
 
 Save this IP — you'll need it for GitHub Actions secrets and the OAuth redirect URI in the next step.
 
-## Step 6: Configure GitHub Actions Deployment
+## Step 7: Configure GitHub Actions Deployment
 
 GitHub Actions automates deployments: every push to `main` (or a manual trigger) SSHs into the VM, pulls the latest code, updates Docker images, and restarts containers.
 
@@ -207,7 +288,7 @@ GitHub Actions automates deployments: every push to `main` (or a manual trigger)
 
 | Secret name | Value | Where to get it |
 |-------------|-------|-----------------|
-| `DEPLOY_HOST` | The VM's static IP address (e.g., `34.123.45.67`) | `cd terraform && terraform output instance_ips` (Step 5) |
+| `DEPLOY_HOST` | The VM's static IP address (e.g., `34.123.45.67`) | `cd terraform && terraform output instance_ips` (Step 6) |
 | `DEPLOY_SSH_KEY` | The SSH private key (PEM format) | Extract with the command below |
 
 Extract the SSH private key from Terraform:
@@ -261,7 +342,7 @@ The workflow completes in ~2–3 minutes with a green checkmark. The final log l
 ✓ Deployment complete - API is healthy
 ```
 
-## Step 7: Verify Deployment and OAuth Access
+## Step 8: Verify Deployment and OAuth Access
 
 Wait 2–3 minutes after the deployment completes for Caddy to provision the TLS certificate from Let's Encrypt.
 
@@ -327,6 +408,10 @@ Extract the SSH key (one-time setup):
 cd terraform && terraform output -raw ssh_private_keys | jq -r '.chris' > archon-chris.pem
 chmod 600 archon-chris.pem
 ```
+
+**What you should see:** A PEM-encoded private key file created in the `terraform/` directory.
+
+> **Security:** Never commit `archon-chris.pem` to version control. This private key grants SSH access to your production VM. The `terraform/` directory is already in `.gitignore` to prevent accidental commits.
 
 Connect to the VM:
 

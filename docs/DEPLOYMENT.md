@@ -1,5 +1,7 @@
 # Production Deployment
 
+> **Deploying to GCP?** See [GCP-DEPLOYMENT.md](GCP-DEPLOYMENT.md) for the complete walkthrough covering OAuth setup, Terraform-managed infrastructure, GitHub Actions configuration, and day-to-day operations.
+
 ## What you need before starting
 
 - Completed [docs/SETUP.md](SETUP.md) — local development environment working
