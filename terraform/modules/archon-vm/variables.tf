@@ -80,5 +80,4 @@ variable "secrets_map" {
     oauth2_client_id     = optional(string, "")
     oauth2_client_secret = optional(string, "")
   })
-  sensitive = true
 }

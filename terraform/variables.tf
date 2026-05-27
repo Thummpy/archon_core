@@ -31,5 +31,4 @@ variable "archon_instances" {
       oauth2_client_secret = optional(string, "")
     })
   }))
-  sensitive = true
 }
