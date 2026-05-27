@@ -82,7 +82,8 @@ check_container() {
 }
 
 check_api() {
-  local url="https://localhost${HEALTH_ENDPOINT}"
+  local domain="${ARCHON_DOMAIN:-localhost}"
+  local url="https://${domain}${HEALTH_ENDPOINT}"
   echo "→ Checking API health (${url} via Caddy)..."
 
   local http_code
@@ -110,7 +111,8 @@ check_api() {
 
 # Informational only — workflow count is never a health gate.
 check_workflows() {
-  local url="https://localhost${WORKFLOWS_ENDPOINT}"
+  local domain="${ARCHON_DOMAIN:-localhost}"
+  local url="https://${domain}${WORKFLOWS_ENDPOINT}"
   echo "→ Checking loaded workflows (via Caddy)..."
 
   local response count

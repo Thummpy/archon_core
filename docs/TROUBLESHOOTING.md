@@ -98,7 +98,7 @@ docker compose up -d
 **Symptom:** `./scripts/health.sh` reports:
 
 ```
-✗ Archon API: unreachable (https://localhost/api/health)
+✗ Archon API: unreachable (https://$ARCHON_DOMAIN/api/health)
 ```
 
 **Cause:** Most of the time this is a timing issue. Archon's Docker healthcheck has a
@@ -283,7 +283,7 @@ not appear in the CLI or Web UI.
    include `description:`. Archon's workflow discovery system skips files without this field.
 
 4. **In 0.3.12, the workflow should appear in the Web UI after restart.** Archon
-   discovers YAML files at startup (confirmed — see [`.claude/docs/smoke-tests.md`](../.claude/docs/smoke-tests.md) Test 30). Open `https://localhost/workflows`
+   discovers YAML files at startup (confirmed — see [`.claude/docs/smoke-tests.md`](../.claude/docs/smoke-tests.md) Test 30). Open `https://$ARCHON_DOMAIN/workflows`
    to confirm. You can also verify filesystem delivery with:
 
    ```bash

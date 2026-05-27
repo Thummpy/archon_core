@@ -104,7 +104,9 @@ Archon uses OAuth2 Proxy with Google authentication. You need to create OAuth2 c
 3. Click **Create Credentials** → **OAuth client ID**
 4. Application type: **Web application**
 5. Name: `Archon Local`
-6. Authorized redirect URIs: `https://localhost/oauth2/callback`
+6. Authorized redirect URIs: `https://<your-ARCHON_DOMAIN>/oauth2/callback`
+   - For local dev: `https://localhost/oauth2/callback`
+   - For GCP: `https://<your-ip>.sslip.io/oauth2/callback` (e.g., `https://34-56-78-90.sslip.io/oauth2/callback`)
 7. Click **Create**
 8. Copy the **Client ID** and **Client Secret** — you'll add these to `.env` in Step 6
 
@@ -112,7 +114,7 @@ Archon uses OAuth2 Proxy with Google authentication. You need to create OAuth2 c
 - A dialog showing your Client ID and Client Secret
 - Keep this window open or save these values securely
 
-> **Important:** The redirect URI must be exactly `https://localhost/oauth2/callback` (no port number).
+> **Important:** The redirect URI must match your `ARCHON_DOMAIN` exactly (no port number). On GCP, use the sslip.io pattern: `https://<IP-with-dashes>.sslip.io/oauth2/callback`.
 
 ## Step 6: Create your `.env` file
 
@@ -272,12 +274,15 @@ ls .archon/workflows/
 
 **What you should see:** The directory may contain only `.gitkeep` if no custom workflows have been added yet — this is expected. The 20 built-in Archon workflows ship inside the Docker image and are always available without any files in this directory. If the command returns an error (no such directory or permission denied), the bind mount may not have taken effect — see [`docs/TROUBLESHOOTING.md`](TROUBLESHOOTING.md).
 
-Finally, open `https://localhost` in your browser to access the Archon web UI.
+Finally, open `https://$ARCHON_DOMAIN` in your browser to access the Archon web UI (e.g., `https://localhost` for local dev, or `https://34-56-78-90.sslip.io` on GCP).
 
-> **First visit:** Your browser will show a security warning about the self-signed certificate.
-> This is expected — click **Advanced** → **Proceed to localhost (unsafe)** (Chrome) or
-> **Accept the Risk and Continue** (Firefox). You will then be redirected to Google OAuth to
-> sign in with your whitelisted email (`$OAUTH_EMAIL`).
+> **Local dev (ARCHON_DOMAIN=localhost):** Your browser will show a security warning about the
+> self-signed certificate. Click **Advanced** then **Proceed to localhost (unsafe)** (Chrome) or
+> **Accept the Risk and Continue** (Firefox).
+>
+> **GCP with sslip.io:** Caddy automatically obtains a trusted Let's Encrypt certificate — no
+> browser warning. You will be redirected to Google OAuth to sign in with your whitelisted
+> email (`$OAUTH_EMAIL`).
 
 ## Next steps
 

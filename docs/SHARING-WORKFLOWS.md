@@ -113,7 +113,7 @@ git commit -m "chore(workflow): suppress built-in <filename>"
 git push
 ```
 
-**What you should see:** After the restart, open `https://localhost/workflows` — the suppressed workflow no longer appears (it has been replaced by the stub). The `archon` CLI binary is not in the container PATH by design — `archon workflow list` exits with code 127.
+**What you should see:** After the restart, open `https://$ARCHON_DOMAIN/workflows` — the suppressed workflow no longer appears (it has been replaced by the stub). The `archon` CLI binary is not in the container PATH by design — `archon workflow list` exits with code 127.
 
 For the full overlay resolution order and instructions on restoring a suppressed default, see [docs/WORKFLOW-OVERLAY.md](WORKFLOW-OVERLAY.md).
 

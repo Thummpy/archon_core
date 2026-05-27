@@ -43,7 +43,7 @@ Config is single-source: /.archon/config.yaml (rw). No overlay — host copy is 
 
 ### 1. Archon's workflow builder UI
 
-Open the Archon web interface at `https://localhost` and use the workflow builder to create or edit a workflow (`Workflows → + New Workflow`). When the save completes fully, Archon writes the YAML through the read-write volume mount to your repo's `.archon/workflows/` directory **and** stores a record in SQLite (`~/archon-data/archon.db`).
+Open the Archon web interface at `https://$ARCHON_DOMAIN` and use the workflow builder to create or edit a workflow (`Workflows → + New Workflow`). When the save completes fully, Archon writes the YAML through the read-write volume mount to your repo's `.archon/workflows/` directory **and** stores a record in SQLite (`~/archon-data/archon.db`).
 
 **What you should see:** After a successful save, a new `.yaml` file appears on your machine under `.archon/workflows/`. Confirm with:
 

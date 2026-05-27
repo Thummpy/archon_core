@@ -37,15 +37,15 @@ Wait ~20 seconds, then verify:
 ./scripts/health.sh
 ```
 
-Open the web UI at **https://localhost**.
+Open the web UI at **https://$ARCHON_DOMAIN** (defaults to `https://localhost` for local dev).
 
 First time? See [docs/SETUP.md](docs/SETUP.md) for the full walkthrough (including Docker installation).
 
 ## Using Archon (v0.3.12)
 
-The web UI at **https://localhost** is the primary interface. The `archon` CLI binary is not in the container's PATH by design (the upstream Dockerfile does not add it), so most `docker compose exec` CLI commands are unavailable.
+The web UI at **https://$ARCHON_DOMAIN** is the primary interface. The `archon` CLI binary is not in the container's PATH by design (the upstream Dockerfile does not add it), so most `docker compose exec` CLI commands are unavailable.
 
-1. **Open the web UI** — `https://localhost`
+1. **Open the web UI** — `https://$ARCHON_DOMAIN`
 2. **Add a project** — paste a repository URL in the web UI. Archon clones it into `~/archon-data/` on the host.
 3. **Run a workflow** — type a natural-language request in the chat. Archon selects the matching workflow and streams progress.
 4. **Build custom workflows** — use the visual builder at `/workflows/builder`. Saved workflows write YAML to `.archon/workflows/` (bind-mounted from this repo).
