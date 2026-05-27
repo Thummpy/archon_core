@@ -54,6 +54,11 @@ jobs:
           for cmd in git docker; do
             if ! command -v "$cmd" &>/dev/null; then
               echo "✗ Required tool not found: $cmd"
+              echo "→ PATH: $PATH"
+              echo "→ Startup log (last 50 lines):"
+              sudo cat /var/log/archon-startup.log 2>/dev/null | tail -50 || echo "  No startup log found"
+              echo "→ Installed packages matching docker:"
+              dpkg -l 2>/dev/null | grep -i docker || echo "  No docker packages found"
               exit 1
             fi
           done
