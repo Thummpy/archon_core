@@ -196,6 +196,7 @@ EOF
 
     echo "✓ Archon startup complete"
     echo "✓ Access at: https://$$ARCHON_DOMAIN"
+    touch /var/log/archon-startup-complete
   SCRIPT
 }
 

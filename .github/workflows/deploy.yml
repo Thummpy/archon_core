@@ -53,13 +53,24 @@ jobs:
           echo "→ Checking required tools"
           for cmd in git docker; do
             if ! command -v "$cmd" &>/dev/null; then
-              echo "✗ Required tool not found: $cmd"
-              echo "→ PATH: $PATH"
-              echo "→ Startup log (last 50 lines):"
-              sudo cat /var/log/archon-startup.log 2>/dev/null | tail -50 || echo "  No startup log found"
-              echo "→ Installed packages matching docker:"
-              dpkg -l 2>/dev/null | grep -i docker || echo "  No docker packages found"
-              exit 1
+              echo "✗ $cmd not found, checking if startup script is still running..."
+              if [ -f /var/log/archon-startup.log ] && [ ! -f /var/log/archon-startup-complete ]; then
+                echo "→ Startup script still in progress, waiting up to 5 min..."
+                for attempt in $(seq 1 10); do
+                  sleep 30
+                  if command -v "$cmd" &>/dev/null; then
+                    echo "✓ $cmd now available (attempt $attempt)"
+                    break 2
+                  fi
+                  echo "  Attempt $attempt/10 — still waiting..."
+                done
+              fi
+              if ! command -v "$cmd" &>/dev/null; then
+                echo "✗ Required tool not found: $cmd"
+                echo "→ Startup log (last 30 lines):"
+                sudo cat /var/log/archon-startup.log 2>/dev/null | tail -30 || echo "  No startup log found"
+                exit 1
+              fi
             fi
           done
           echo "✓ All required tools available"

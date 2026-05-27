@@ -111,28 +111,27 @@ jobs:
           terraform output -json ssh_private_keys | jq -r '.chris' > /tmp/ssh_key.pem
           chmod 600 /tmp/ssh_key.pem
 
-      - name: Wait for VM startup
+      - name: Wait for VM startup script to complete
         if: inputs.action == 'apply'
         run: |
-          echo "→ Waiting 300s for VM startup script to complete (Docker install + image builds)..."
-          sleep 300
-
-      - name: Verify VM is reachable
-        if: inputs.action == 'apply'
-        run: |
-          echo "→ Checking SSH connectivity..."
-          for i in $(seq 1 6); do
+          echo "→ Waiting for startup script to finish (polling every 30s, up to 15 min)..."
+          for i in $(seq 1 30); do
             if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 \
               -i /tmp/ssh_key.pem \
               "chris@${{ steps.outputs.outputs.instance_ip }}" \
-              "echo 'SSH OK'" 2>/dev/null; then
-              echo "✓ VM is reachable via SSH"
+              "test -f /var/log/archon-startup-complete" 2>/dev/null; then
+              echo "✓ Startup script completed (attempt ${i})"
               exit 0
             fi
-            echo "  Attempt ${i}/6 failed, waiting 30s..."
+            echo "  Attempt ${i}/30 — startup script still running, waiting 30s..."
             sleep 30
           done
-          echo "✗ VM not reachable after 6 attempts"
+          echo "✗ Startup script did not complete within 15 minutes"
+          echo "→ Last 30 lines of startup log:"
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 \
+            -i /tmp/ssh_key.pem \
+            "chris@${{ steps.outputs.outputs.instance_ip }}" \
+            "sudo cat /var/log/archon-startup.log | tail -30" 2>/dev/null || true
           exit 1
 
       - name: Summary
