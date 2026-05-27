@@ -4,9 +4,11 @@ oauth_email    = "chris@caldwell.ws"
 archon_instances = {
   chris = {
     secrets_map = {
-      claude_oauth_token = "archon-chris-claude-oauth-token"
-      github_token       = "archon-chris-github-token"
-      discord_bot_token  = "archon-chris-discord-bot-token"
+      claude_oauth_token   = "archon-chris-claude-oauth-token"
+      github_token         = "archon-chris-github-token"
+      discord_bot_token    = "archon-chris-discord-bot-token"
+      oauth2_client_id     = "archon-chris-oauth2-client-id"
+      oauth2_client_secret = "archon-chris-oauth2-client-secret"
     }
   }
 }

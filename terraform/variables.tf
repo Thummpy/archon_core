@@ -24,9 +24,11 @@ variable "archon_instances" {
   description = "Map of instance configurations — map keys become SSH usernames (see terraform.tfvars.example)"
   type = map(object({
     secrets_map = object({
-      claude_oauth_token = string
-      github_token       = string
-      discord_bot_token  = string
+      claude_oauth_token   = string
+      github_token         = string
+      discord_bot_token    = string
+      oauth2_client_id     = optional(string, "")
+      oauth2_client_secret = optional(string, "")
     })
   }))
   sensitive = true
