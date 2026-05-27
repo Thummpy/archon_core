@@ -191,7 +191,7 @@ archon-app: running (healthy) | Archon API: OK | Workflows loaded: N
 ✓ sync-down complete in 25s ← gdrive:archon-data
 ```
 
-Open `http://localhost:3000` to confirm Archon is running.
+Open `https://localhost` to confirm Archon is running.
 
 To skip the interactive confirmation (for use in scripts or automation):
 
@@ -256,7 +256,7 @@ You are at your desktop and want to continue where you left off on your laptop.
 ./scripts/sync-down.sh
 ```
 
-Confirm the overwrite with `YES`. Data downloads and Archon starts automatically. Open `http://localhost:3000` when the script finishes.
+Confirm the overwrite with `YES`. Data downloads and Archon starts automatically. Open `https://localhost` when the script finishes.
 
 ## Something went wrong?
 

@@ -45,7 +45,7 @@ First time? See [docs/SETUP.md](docs/SETUP.md) for the full walkthrough (includi
 
 The web UI at **https://localhost** is the primary interface. The `archon` CLI binary is not in the container's PATH by design (the upstream Dockerfile does not add it), so most `docker compose exec` CLI commands are unavailable.
 
-1. **Open the web UI** — `https://localhost` (or `http://localhost:<PORT>` if you changed it in `.env`)
+1. **Open the web UI** — `https://localhost`
 2. **Add a project** — paste a repository URL in the web UI. Archon clones it into `~/archon-data/` on the host.
 3. **Run a workflow** — type a natural-language request in the chat. Archon selects the matching workflow and streams progress.
 4. **Build custom workflows** — use the visual builder at `/workflows/builder`. Saved workflows write YAML to `.archon/workflows/` (bind-mounted from this repo).
