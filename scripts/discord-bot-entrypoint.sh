@@ -23,6 +23,15 @@ if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
   exit 1
 fi
 
+# Restore .claude.json from backup if missing (shared volume may lose it)
+if [ ! -f "$HOME/.claude.json" ]; then
+  BACKUP=$(ls -t "$HOME/.claude/backups/.claude.json.backup."* 2>/dev/null | head -1)
+  if [ -n "$BACKUP" ]; then
+    cp "$BACKUP" "$HOME/.claude.json"
+    echo "[discord-bot] Restored .claude.json from backup" >&2
+  fi
+fi
+
 echo "[discord-bot] Token validated, starting bot..." >&2
 
 exec python3 /app/bot.py

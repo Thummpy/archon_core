@@ -13,10 +13,8 @@ async def run_claude(prompt: str, project_dir: str | None = None) -> str:
     env["CLAUDE_CODE_OAUTH_TOKEN"] = config.CLAUDE_CODE_OAUTH_TOKEN
 
     cmd = ["claude", "-p", prompt, "--output-format", "text"]
-    if project_dir:
-        cmd.extend(["--project-dir", project_dir])
 
-    logger.info("Spawning claude subprocess project_dir=%s", project_dir or "(none)")
+    logger.info("Spawning claude subprocess cwd=%s", project_dir or "(none)")
     start = time.monotonic()
 
     try:
@@ -25,6 +23,7 @@ async def run_claude(prompt: str, project_dir: str | None = None) -> str:
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             env=env,
+            cwd=project_dir,
         )
         stdout, stderr = await asyncio.wait_for(
             proc.communicate(),
