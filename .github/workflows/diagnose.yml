@@ -34,34 +34,47 @@ jobs:
         env:
           DEPLOY_HOST: ${{ steps.tf.outputs.host }}
         run: |
-          ssh -o StrictHostKeyChecking=no -i /tmp/key.pem \
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 -o ServerAliveInterval=10 \
+            -i /tmp/key.pem \
             "chris@${DEPLOY_HOST}" bash -s <<'DIAG'
-          set -euo pipefail
+          set -uo pipefail
+
           cd ~/archon_core
 
           echo "=== Container Status ==="
-          docker compose ps
+          docker compose ps 2>&1 || true
 
           echo ""
-          echo "=== Discord Bot Logs (last 50 lines) ==="
-          docker compose logs discord-bot --tail=50
+          echo "=== Discord Bot Logs (last 100 lines) ==="
+          docker compose logs discord-bot --tail=100 2>&1 || true
 
           echo ""
           echo "=== Discord Bot Env Check ==="
-          docker compose exec -T discord-bot env | grep -E "CLAUDE|DISCORD|DATA_DIR|HOME" | sed 's/=.*/=<set>/'
+          docker compose exec -T discord-bot env 2>&1 | grep -E "CLAUDE|DISCORD|DATA_DIR|HOME|PATH" | sed 's/=.*/=<set>/' || true
 
           echo ""
           echo "=== Project Dir Check ==="
-          docker compose exec -T discord-bot ls -la /data/projects/Thummpy/dnd-context/source/ 2>&1 | head -10 || echo "NOT FOUND"
+          docker compose exec -T discord-bot ls -la /data/projects/Thummpy/dnd-context/source/ 2>&1 || echo "NOT FOUND"
 
           echo ""
-          echo "=== Claude CLI Check ==="
-          docker compose exec -T discord-bot claude --version 2>&1 || echo "CLAUDE CLI NOT FOUND"
+          echo "=== Claude CLI Version ==="
+          docker compose exec -T discord-bot claude --version 2>&1 || echo "CLAUDE CLI NOT FOUND OR ERRORED"
 
           echo ""
           echo "=== File Permissions ==="
-          docker compose exec -T discord-bot ls -la /home/botuser/.claude/ 2>&1 | head -10 || echo "No .claude dir"
-          docker compose exec -T discord-bot id
+          docker compose exec -T discord-bot ls -la /home/botuser/.claude/ 2>&1 || echo "No .claude dir"
+          docker compose exec -T discord-bot id 2>&1 || true
+
+          echo ""
+          echo "=== Direct Claude CLI Test ==="
+          docker compose exec -T discord-bot bash -c 'CLAUDE_CODE_OAUTH_TOKEN=$CLAUDE_CODE_OAUTH_TOKEN claude -p "say hello" --output-format text 2>&1; echo "EXIT_CODE=$?"' 2>&1 || echo "EXEC FAILED"
+
+          echo ""
+          echo "=== DNS Check ==="
+          docker compose exec -T discord-bot bash -c 'getent hosts api.anthropic.com 2>&1 || echo "DNS FAILED"' || true
+
+          echo ""
+          echo "=== DONE ==="
           DIAG
 
       - name: Cleanup
