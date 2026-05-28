@@ -1,5 +1,4 @@
 import asyncio
-import json
 import logging
 import os
 import time
@@ -10,21 +9,17 @@ logger = logging.getLogger("discord-bot.claude")
 
 
 async def run_claude(prompt: str, project_dir: str | None = None) -> dict:
-    """Run Claude CLI and return structured result with text, thinking, and tool calls.
+    """Run Claude CLI and return structured result with text.
 
     Returns:
         dict with keys:
             text: str — the final assistant text (for sending to Discord)
-            trace: list[dict] — ordered list of content blocks:
-                {"type": "thinking", "content": str}
-                {"type": "text", "content": str}
-                {"type": "tool_use", "name": str, "input": dict}
-                {"type": "tool_result", "tool_use_id": str, "content": str}
+            trace: list[dict] — always empty for now; traces readable from session JSONL files
     """
     env = os.environ.copy()
     env["CLAUDE_CODE_OAUTH_TOKEN"] = config.CLAUDE_CODE_OAUTH_TOKEN
 
-    cmd = ["claude", "-p", prompt, "--output-format", "stream-json"]
+    cmd = ["claude", "-p", prompt, "--output-format", "text"]
 
     logger.info("Spawning claude subprocess cwd=%s", project_dir or "(none)")
     start = time.monotonic()
@@ -77,58 +72,4 @@ async def run_claude(prompt: str, project_dir: str | None = None) -> dict:
         raise RuntimeError(f"Claude CLI exited with code {proc.returncode}")
 
     raw = stdout.decode("utf-8", errors="replace").strip()
-    return _parse_stream_json(raw)
-
-
-def _parse_stream_json(raw: str) -> dict:
-    """Parse stream-json output into structured result."""
-    text_parts: list[str] = []
-    trace: list[dict] = []
-    result_text: str | None = None
-
-    for line in raw.split("\n"):
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            event = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-
-        event_type = event.get("type")
-
-        if event_type == "assistant":
-            for block in event.get("message", {}).get("content", []):
-                block_type = block.get("type")
-                if block_type == "text":
-                    text_parts.append(block["text"])
-                    trace.append({"type": "text", "content": block["text"]})
-                elif block_type == "thinking":
-                    trace.append({"type": "thinking", "content": block.get("thinking", "")})
-                elif block_type == "tool_use":
-                    trace.append({
-                        "type": "tool_use",
-                        "name": block.get("name", ""),
-                        "tool_use_id": block.get("id", ""),
-                        "input": block.get("input", {}),
-                    })
-
-        elif event_type == "tool":
-            for block in event.get("message", {}).get("content", []):
-                if block.get("type") == "tool_result":
-                    content = block.get("content", "")
-                    if isinstance(content, list):
-                        content = "\n".join(
-                            b.get("text", str(b)) for b in content
-                        )
-                    trace.append({
-                        "type": "tool_result",
-                        "tool_use_id": block.get("tool_use_id", ""),
-                        "content": str(content)[:5000],
-                    })
-
-        elif event_type == "result":
-            result_text = event.get("result", "")
-
-    text = "\n".join(text_parts) if text_parts else (result_text or raw)
-    return {"text": text.strip(), "trace": trace}
+    return {"text": raw, "trace": []}
