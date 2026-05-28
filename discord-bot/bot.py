@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import logging.handlers
 import os
 import pathlib
 import sys
@@ -11,11 +12,17 @@ import claude_runner
 import config
 import thread_manager
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(name)s %(levelname)s %(message)s",
-    stream=sys.stderr,
+LOG_FORMAT = "%(asctime)s %(name)s %(levelname)s %(message)s"
+logging.basicConfig(level=logging.INFO, format=LOG_FORMAT, stream=sys.stderr)
+
+_log_dir = os.path.join(os.environ.get("DATA_DIR", "/data"), "logs")
+os.makedirs(_log_dir, exist_ok=True)
+_file_handler = logging.handlers.RotatingFileHandler(
+    os.path.join(_log_dir, "bot.log"), maxBytes=5_000_000, backupCount=3
 )
+_file_handler.setFormatter(logging.Formatter(LOG_FORMAT))
+logging.getLogger().addHandler(_file_handler)
+
 logger = logging.getLogger("discord-bot")
 
 intents = discord.Intents.default()
