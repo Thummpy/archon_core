@@ -31,15 +31,17 @@ async def run_claude(
     env = os.environ.copy()
     env["CLAUDE_CODE_OAUTH_TOKEN"] = config.CLAUDE_CODE_OAUTH_TOKEN
 
+    base_cmd = ["claude", "-p", prompt, "--output-format", "text", "--model", "claude-opus-4-6"]
+
     if session_id:
         if is_new_session:
-            cmd = ["claude", "--session-id", session_id, "-p", prompt, "--output-format", "text", "--model", "claude-opus-4-6"]
+            cmd = ["claude", "--session-id", session_id] + base_cmd[1:]
             logger.info("Creating new Claude session session_id=%s", session_id)
         else:
-            cmd = ["claude", "--resume", session_id, "-p", prompt, "--output-format", "text", "--model", "claude-opus-4-6"]
+            cmd = ["claude", "--resume", session_id] + base_cmd[1:]
             logger.info("Resuming Claude session session_id=%s", session_id)
     else:
-        cmd = ["claude", "-p", prompt, "--output-format", "text", "--model", "claude-opus-4-6"]
+        cmd = base_cmd
         logger.info("Running Claude without session (one-off prompt)")
 
     logger.info("Prompt character count: %d", len(prompt))
@@ -90,24 +92,21 @@ async def run_claude(
         elapsed,
     )
 
-    # Log stderr if present (even on success - might contain warnings)
-    err_msg = stderr.decode("utf-8", errors="replace").strip()
-    if err_msg:
-        if proc.returncode != 0:
+    if proc.returncode != 0:
+        err_msg = stderr.decode("utf-8", errors="replace").strip()
+        if err_msg:
             logger.error(
                 "Claude subprocess failed exit_code=%d stderr=%s",
                 proc.returncode,
                 err_msg[:1000],
             )
-            raise RuntimeError(f"Claude CLI exited with code {proc.returncode}")
         else:
-            logger.warning(
-                "Claude subprocess wrote to stderr (exit_code=0): %s",
-                err_msg[:1000]
-            )
-    elif proc.returncode != 0:
-        logger.error("Claude subprocess failed exit_code=%d (no stderr)", proc.returncode)
+            logger.error("Claude subprocess failed exit_code=%d (no stderr)", proc.returncode)
         raise RuntimeError(f"Claude CLI exited with code {proc.returncode}")
+
+    err_msg = stderr.decode("utf-8", errors="replace").strip()
+    if err_msg:
+        logger.warning("Claude subprocess wrote to stderr (exit_code=0): %s", err_msg[:1000])
 
     raw = stdout.decode("utf-8", errors="replace").strip()
     return {"text": raw, "trace": []}

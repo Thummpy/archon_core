@@ -3,6 +3,7 @@ import logging
 import logging.handlers
 import os
 import pathlib
+import shutil
 import sys
 import time
 
@@ -186,9 +187,7 @@ async def on_ready() -> None:
 
 @bot.event
 async def on_message(message: discord.Message) -> None:
-    if message.author == bot.user:
-        return
-    if message.author.bot:
+    if message.author == bot.user or message.author.bot:
         return
 
     try:
@@ -457,8 +456,6 @@ async def _handle_thread_message(
 
 
 def main() -> None:
-    # Validate claude CLI is available before starting bot
-    import shutil
     if not shutil.which("claude"):
         logger.error("Claude CLI not found in PATH - bot cannot function")
         print("ERROR: Claude CLI is not installed.", file=sys.stderr)
