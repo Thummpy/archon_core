@@ -232,8 +232,12 @@ async def on_message(message: discord.Message) -> None:
                 f"⚠️ Discord API error ({getattr(exc, 'status', 'unknown')}). "
                 "This might be temporary - please try again."
             )
-        except Exception:
-            pass
+        except Exception as notify_exc:
+            logger.error(
+                "Failed to notify user about Discord API error message_id=%d notify_error=%s",
+                message.id,
+                notify_exc
+            )
 
     except OSError as exc:
         logger.error(
@@ -246,8 +250,12 @@ async def on_message(message: discord.Message) -> None:
                 "⚠️ Failed to save conversation state. "
                 "Contact the bot admin - storage may be full."
             )
-        except Exception:
-            pass
+        except Exception as notify_exc:
+            logger.error(
+                "Failed to notify user about file I/O error message_id=%d notify_error=%s",
+                message.id,
+                notify_exc
+            )
 
     except Exception as exc:
         logger.exception(
@@ -259,8 +267,12 @@ async def on_message(message: discord.Message) -> None:
             await message.reply(
                 "❌ An unexpected error occurred. The issue has been logged."
             )
-        except Exception:
-            pass
+        except Exception as notify_exc:
+            logger.error(
+                "Failed to notify user about unexpected error message_id=%d notify_error=%s",
+                message.id,
+                notify_exc
+            )
 
 
 async def _ensure_thread(
@@ -301,15 +313,22 @@ async def _handle_thread_message(
         else:
             messages, session_id = result
 
+        # Session initialization: Load existing session_id or generate new UUID.
+        # is_new_session flag signals claude_runner to use --session-id (create) vs --resume (continue).
+        # Old threads without session_id will get one here; errors abort the message.
         is_new_session = False
         if not session_id:
-            session_id = await thread_manager.get_or_create_session_id(thread.id)
+            # Pass preloaded result to avoid redundant file load
+            session_id = await thread_manager.get_or_create_session_id(
+                thread.id,
+                preloaded_result=result
+            )
             if session_id is None:
                 await thread.send(
                     "⚠️ Failed to initialize session. Please try again or contact the bot admin."
                 )
                 return
-            is_new_session = True
+            is_new_session = True  # New session → claude_runner uses --session-id instead of --resume
 
         messages.append({"role": "user", "content": message.content})
 
@@ -318,7 +337,20 @@ async def _handle_thread_message(
                 f"This thread has reached {config.ARCHIVE_THRESHOLD} messages "
                 "and will be archived. Please start a new conversation."
             )
-            await thread.edit(archived=True)
+            try:
+                await thread.edit(archived=True)
+                logger.info("Archived thread thread_id=%d message_count=%d", thread.id, len(messages))
+            except (discord.Forbidden, discord.HTTPException, discord.NotFound) as exc:
+                logger.error(
+                    "Failed to archive thread thread_id=%d error=%s type=%s",
+                    thread.id,
+                    exc,
+                    type(exc).__name__
+                )
+                await thread.send(
+                    "⚠️ Could not archive this thread due to a technical issue. "
+                    "Please start a new conversation in a fresh thread."
+                )
             return
 
         project_dir = _project_dir_for_channel(channel_name)
@@ -384,8 +416,12 @@ async def _handle_thread_message(
                     "❌ I generated a response but lack permission to send it. "
                     "An admin needs to grant me `Send Messages in Threads`."
                 )
-            except Exception:
-                pass
+            except Exception as notify_exc:
+                logger.error(
+                    "Failed to notify user about permission denied error thread_id=%d notify_error=%s",
+                    thread.id,
+                    notify_exc
+                )
         except discord.HTTPException as exc:
             send_failed = True
             logger.error(
@@ -400,8 +436,12 @@ async def _handle_thread_message(
                     f"({getattr(exc, 'status', 'unknown')}). "
                     "This might be temporary - please try again."
                 )
-            except Exception:
-                pass
+            except Exception as notify_exc:
+                logger.error(
+                    "Failed to notify user about Discord API error thread_id=%d notify_error=%s",
+                    thread.id,
+                    notify_exc
+                )
 
         # Notify user about save failure (after attempting send)
         if save_failed and not send_failed:

@@ -74,15 +74,31 @@ async def load_context(thread_id: int) -> tuple[list[dict], str | None] | None:
         return None
 
 
-async def get_or_create_session_id(thread_id: int) -> str | None:
+async def get_or_create_session_id(
+    thread_id: int,
+    preloaded_result: tuple[list[dict], str | None] | None = None
+) -> str | None:
     """Get existing session ID for thread, or create new one.
+
+    Args:
+        thread_id: Discord thread ID
+        preloaded_result: Optional pre-loaded context from load_context().
+                          If provided, skips redundant file load.
 
     Returns:
         str: Session ID (existing or newly generated UUID)
         None: If load failed (signals error to caller)
     """
-    result = await load_context(thread_id)
+    if preloaded_result is not None:
+        result = preloaded_result
+    else:
+        result = await load_context(thread_id)
+
     if result is None:
+        logger.error(
+            "Cannot initialize session for thread_id=%d - load_context failed",
+            thread_id
+        )
         return None
     messages, session_id = result
     if session_id:

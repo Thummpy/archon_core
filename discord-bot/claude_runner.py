@@ -16,6 +16,13 @@ async def run_claude(
 ) -> dict:
     """Run Claude CLI and return structured result with text.
 
+    Args:
+        prompt: The user's message to send to Claude
+        project_dir: Working directory for Claude CLI (optional)
+        session_id: UUID for session persistence. None = one-off prompt (no session)
+        is_new_session: If True, use --session-id (create). If False, use --resume (continue).
+                        Ignored when session_id is None.
+
     Returns:
         dict with keys:
             text: str — the final assistant text (for sending to Discord)
@@ -61,6 +68,12 @@ async def run_claude(
         raise RuntimeError(
             "Claude CLI lacks execute permissions"
         )
+    except OSError as exc:
+        logger.error("OS error spawning Claude subprocess: %s", exc)
+        raise RuntimeError(
+            f"Could not spawn Claude CLI process (OS error: {exc.strerror or str(exc)}). "
+            "Contact the bot admin - system resources may be exhausted."
+        )
     except asyncio.TimeoutError:
         proc.kill()
         await proc.wait()
@@ -77,13 +90,23 @@ async def run_claude(
         elapsed,
     )
 
-    if proc.returncode != 0:
-        err_msg = stderr.decode("utf-8", errors="replace").strip()
-        logger.error(
-            "Claude subprocess failed exit_code=%d stderr=%s",
-            proc.returncode,
-            err_msg[:1000],
-        )
+    # Log stderr if present (even on success - might contain warnings)
+    err_msg = stderr.decode("utf-8", errors="replace").strip()
+    if err_msg:
+        if proc.returncode != 0:
+            logger.error(
+                "Claude subprocess failed exit_code=%d stderr=%s",
+                proc.returncode,
+                err_msg[:1000],
+            )
+            raise RuntimeError(f"Claude CLI exited with code {proc.returncode}")
+        else:
+            logger.warning(
+                "Claude subprocess wrote to stderr (exit_code=0): %s",
+                err_msg[:1000]
+            )
+    elif proc.returncode != 0:
+        logger.error("Claude subprocess failed exit_code=%d (no stderr)", proc.returncode)
         raise RuntimeError(f"Claude CLI exited with code {proc.returncode}")
 
     raw = stdout.decode("utf-8", errors="replace").strip()
