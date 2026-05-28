@@ -290,14 +290,26 @@ async def _handle_thread_message(
 ) -> None:
     lock = _get_lock(thread.id)
     async with lock:
-        messages = await thread_manager.load_context(thread.id)
-        if messages is None:
-            # Error loading history - notify user
+        result = await thread_manager.load_context(thread.id)
+        if result is None:
             await thread.send(
                 "⚠️ I couldn't load our conversation history due to a technical issue. "
                 "Continuing with a fresh context."
             )
             messages = []
+            session_id = None
+        else:
+            messages, session_id = result
+
+        is_new_session = False
+        if not session_id:
+            session_id = await thread_manager.get_or_create_session_id(thread.id)
+            if session_id is None:
+                await thread.send(
+                    "⚠️ Failed to initialize session. Please try again or contact the bot admin."
+                )
+                return
+            is_new_session = True
 
         messages.append({"role": "user", "content": message.content})
 
@@ -311,16 +323,15 @@ async def _handle_thread_message(
 
         project_dir = _project_dir_for_channel(channel_name)
 
-        context_prompt = "\n\n".join(
-            f"{'User' if m['role'] == 'user' else 'Assistant'}: {m['content']}"
-            for m in messages
-        )
+        latest_prompt = message.content
 
         async with thread.typing():
             try:
                 result = await claude_runner.run_claude(
-                    context_prompt,
+                    latest_prompt,
                     project_dir=project_dir,
+                    session_id=session_id,
+                    is_new_session=is_new_session,
                 )
             except TimeoutError as exc:
                 logger.error("Claude timed out thread_id=%d error=%s", thread.id, exc)
@@ -347,7 +358,7 @@ async def _handle_thread_message(
         # Try to save context
         save_failed = False
         try:
-            await thread_manager.save_context(thread.id, messages)
+            await thread_manager.save_context(thread.id, messages, session_id=session_id)
         except (OSError, TypeError) as exc:
             save_failed = True
             logger.error(

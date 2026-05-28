@@ -8,7 +8,12 @@ import config
 logger = logging.getLogger("discord-bot.claude")
 
 
-async def run_claude(prompt: str, project_dir: str | None = None) -> dict:
+async def run_claude(
+    prompt: str,
+    project_dir: str | None = None,
+    session_id: str | None = None,
+    is_new_session: bool = False,
+) -> dict:
     """Run Claude CLI and return structured result with text.
 
     Returns:
@@ -19,8 +24,18 @@ async def run_claude(prompt: str, project_dir: str | None = None) -> dict:
     env = os.environ.copy()
     env["CLAUDE_CODE_OAUTH_TOKEN"] = config.CLAUDE_CODE_OAUTH_TOKEN
 
-    cmd = ["claude", "-p", prompt, "--output-format", "text", "--model", "claude-opus-4-6"]
+    if session_id:
+        if is_new_session:
+            cmd = ["claude", "--session-id", session_id, "-p", prompt, "--output-format", "text", "--model", "claude-opus-4-6"]
+            logger.info("Creating new Claude session session_id=%s", session_id)
+        else:
+            cmd = ["claude", "--resume", session_id, "-p", prompt, "--output-format", "text", "--model", "claude-opus-4-6"]
+            logger.info("Resuming Claude session session_id=%s", session_id)
+    else:
+        cmd = ["claude", "-p", prompt, "--output-format", "text", "--model", "claude-opus-4-6"]
+        logger.info("Running Claude without session (one-off prompt)")
 
+    logger.info("Prompt character count: %d", len(prompt))
     logger.info("Spawning claude subprocess cwd=%s", project_dir or "(none)")
     start = time.monotonic()
 
