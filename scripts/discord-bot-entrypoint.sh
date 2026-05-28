@@ -32,6 +32,9 @@ if [ ! -f "$HOME/.claude.json" ]; then
   fi
 fi
 
+# Make Claude CLI session files readable by other containers sharing the volume
+umask 0022
+
 echo "[discord-bot] Token validated, starting bot..." >&2
 
 exec python3 /app/bot.py

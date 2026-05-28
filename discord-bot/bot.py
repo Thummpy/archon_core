@@ -133,8 +133,8 @@ async def _handle_slash_command(
     project_dir = _project_dir_for_channel(channel_name)
 
     try:
-        response = await claude_runner.run_claude(prompt, project_dir=project_dir)
-        for chunk in _split_response(response):
+        result = await claude_runner.run_claude(prompt, project_dir=project_dir)
+        for chunk in _split_response(result["text"]):
             await ctx.followup.send(chunk)
     except TimeoutError as exc:
         logger.error("Slash command timed out cmd=%s error=%s", cmd_name, exc)
@@ -311,7 +311,7 @@ async def _handle_thread_message(
 
         async with thread.typing():
             try:
-                response = await claude_runner.run_claude(
+                result = await claude_runner.run_claude(
                     context_prompt,
                     project_dir=project_dir,
                 )
@@ -331,7 +331,11 @@ async def _handle_thread_message(
                 )
                 return
 
-        messages.append({"role": "assistant", "content": response})
+        response = result["text"]
+        assistant_msg = {"role": "assistant", "content": response}
+        if result.get("trace"):
+            assistant_msg["trace"] = result["trace"]
+        messages.append(assistant_msg)
 
         # Try to save context
         save_failed = False
