@@ -133,7 +133,8 @@ In the `#dnd-context` channel of your Discord server, type a message. The bot sh
 2. Respond with Claude Code's output inside the thread
 
 Continue the conversation by replying in the thread. Each thread maintains its own
-conversation context for up to 100 messages, after which it archives automatically.
+conversation context for up to 500 messages (increased from 100 with session-based 
+conversation management), after which it archives automatically.
 
 ## Using Slash Commands
 
@@ -197,7 +198,7 @@ docker compose restart discord-bot
 
 **Claude Code times out:**
 
-The default timeout is 120 seconds. If Claude consistently takes longer, check that
+The default timeout is 300 seconds. If Claude consistently takes longer, check that
 the Claude Code CLI is installed correctly inside the container:
 
 ```bash

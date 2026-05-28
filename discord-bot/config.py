@@ -36,7 +36,7 @@ CHANNEL_MAP = {
     "dnd-context": "Thummpy/dnd-context/source",
 }
 
-# Archive threads after 100 messages to prevent excessive context length
-ARCHIVE_THRESHOLD = 100
-# Claude subprocess timeout (prevents hanging on long-running prompts)
-CLAUDE_TIMEOUT_SECONDS = 120
+# Archive threads after 500 messages (increased from 100 with session resume - context growth no longer an issue)
+ARCHIVE_THRESHOLD = 500
+# Claude subprocess timeout - increased to 300s to handle longer session operations
+CLAUDE_TIMEOUT_SECONDS = 300

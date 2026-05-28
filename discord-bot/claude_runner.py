@@ -8,8 +8,20 @@ import config
 logger = logging.getLogger("discord-bot.claude")
 
 
-async def run_claude(prompt: str, project_dir: str | None = None) -> dict:
+async def run_claude(
+    prompt: str,
+    project_dir: str | None = None,
+    session_id: str | None = None,
+    is_new_session: bool = False,
+) -> dict:
     """Run Claude CLI and return structured result with text.
+
+    Args:
+        prompt: The user's message to send to Claude
+        project_dir: Working directory for Claude CLI (optional)
+        session_id: UUID for session persistence. None = one-off prompt (no session)
+        is_new_session: If True, use --session-id (create). If False, use --resume (continue).
+                        Ignored when session_id is None.
 
     Returns:
         dict with keys:
@@ -19,8 +31,20 @@ async def run_claude(prompt: str, project_dir: str | None = None) -> dict:
     env = os.environ.copy()
     env["CLAUDE_CODE_OAUTH_TOKEN"] = config.CLAUDE_CODE_OAUTH_TOKEN
 
-    cmd = ["claude", "-p", prompt, "--output-format", "text", "--model", "claude-opus-4-6"]
+    base_cmd = ["claude", "-p", prompt, "--output-format", "text", "--model", "claude-opus-4-6"]
 
+    if session_id:
+        if is_new_session:
+            cmd = ["claude", "--session-id", session_id] + base_cmd[1:]
+            logger.info("Creating new Claude session session_id=%s", session_id)
+        else:
+            cmd = ["claude", "--resume", session_id] + base_cmd[1:]
+            logger.info("Resuming Claude session session_id=%s", session_id)
+    else:
+        cmd = base_cmd
+        logger.info("Running Claude without session (one-off prompt)")
+
+    logger.info("Prompt character count: %d", len(prompt))
     logger.info("Spawning claude subprocess cwd=%s", project_dir or "(none)")
     start = time.monotonic()
 
@@ -46,6 +70,12 @@ async def run_claude(prompt: str, project_dir: str | None = None) -> dict:
         raise RuntimeError(
             "Claude CLI lacks execute permissions"
         )
+    except OSError as exc:
+        logger.error("OS error spawning Claude subprocess: %s", exc)
+        raise RuntimeError(
+            f"Could not spawn Claude CLI process (OS error: {exc.strerror or str(exc)}). "
+            "Contact the bot admin - system resources may be exhausted."
+        )
     except asyncio.TimeoutError:
         proc.kill()
         await proc.wait()
@@ -64,12 +94,19 @@ async def run_claude(prompt: str, project_dir: str | None = None) -> dict:
 
     if proc.returncode != 0:
         err_msg = stderr.decode("utf-8", errors="replace").strip()
-        logger.error(
-            "Claude subprocess failed exit_code=%d stderr=%s",
-            proc.returncode,
-            err_msg[:1000],
-        )
+        if err_msg:
+            logger.error(
+                "Claude subprocess failed exit_code=%d stderr=%s",
+                proc.returncode,
+                err_msg[:1000],
+            )
+        else:
+            logger.error("Claude subprocess failed exit_code=%d (no stderr)", proc.returncode)
         raise RuntimeError(f"Claude CLI exited with code {proc.returncode}")
+
+    err_msg = stderr.decode("utf-8", errors="replace").strip()
+    if err_msg:
+        logger.warning("Claude subprocess wrote to stderr (exit_code=0): %s", err_msg[:1000])
 
     raw = stdout.decode("utf-8", errors="replace").strip()
     return {"text": raw, "trace": []}
