@@ -19,7 +19,7 @@ async def run_claude(prompt: str, project_dir: str | None = None) -> dict:
     env = os.environ.copy()
     env["CLAUDE_CODE_OAUTH_TOKEN"] = config.CLAUDE_CODE_OAUTH_TOKEN
 
-    cmd = ["claude", "-p", prompt, "--output-format", "text"]
+    cmd = ["claude", "-p", prompt, "--output-format", "text", "--model", "claude-opus-4-6"]
 
     logger.info("Spawning claude subprocess cwd=%s", project_dir or "(none)")
     start = time.monotonic()
