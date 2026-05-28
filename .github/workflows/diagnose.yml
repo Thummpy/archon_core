@@ -16,7 +16,8 @@ jobs:
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-      - uses: hashicorp/setup-terraform@v3
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_wrapper: false
 
@@ -34,7 +35,6 @@ jobs:
         env:
           DEPLOY_HOST: ${{ steps.tf.outputs.host }}
         run: |
-          # Write the diagnostic script to the VM, run it, then fetch the output
           ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 \
             -i /tmp/key.pem \
             "chris@${DEPLOY_HOST}" 'bash -c "
@@ -49,33 +49,17 @@ jobs:
             docker compose logs discord-bot --tail=100 || true
 
             echo \"\"
-            echo \"=== Env Check ===\"
-            docker compose exec -T discord-bot env 2>&1 | grep -E \"CLAUDE|DISCORD|DATA_DIR|HOME|PATH\" | sed \"s/=.*/=<set>/\" || true
+            echo \"=== Test 1: Claude CLI WITHOUT project-dir ===\"
+            timeout 60 docker compose exec -T discord-bot bash -c \"claude -p test --output-format text 2>&1\" 2>&1 || echo \"FAILED exit=\$?\"
 
             echo \"\"
-            echo \"=== Project Dir Check ===\"
-            docker compose exec -T discord-bot ls -la /data/projects/Thummpy/dnd-context/source/ 2>&1 || echo \"NOT FOUND\"
+            echo \"=== Test 2: Claude CLI WITH project-dir ===\"
+            timeout 60 docker compose exec -T discord-bot bash -c \"claude -p test --output-format text --project-dir /data/projects/Thummpy/dnd-context/source 2>&1\" 2>&1 || echo \"FAILED exit=\$?\"
 
             echo \"\"
-            echo \"=== Claude CLI Version ===\"
-            docker compose exec -T discord-bot claude --version 2>&1 || echo \"CLAUDE CLI FAILED\"
-
-            echo \"\"
-            echo \"=== File Permissions ===\"
-            docker compose exec -T discord-bot ls -la /home/botuser/.claude/ 2>&1 || echo \"No .claude dir\"
-            docker compose exec -T discord-bot id 2>&1 || true
-
-            echo \"\"
-            echo \"=== DNS Check ===\"
-            docker compose exec -T discord-bot bash -c \"getent hosts api.anthropic.com 2>&1 || echo DNS_FAILED\" || true
-
-            echo \"\"
-            echo \"=== Direct Claude CLI Test (stderr only) ===\"
-            docker compose exec -T discord-bot bash -c \"claude -p test --output-format text >/dev/null 2>&1; echo EXIT_CODE=\\\$?\" 2>&1 || echo \"EXEC FAILED\"
-
-            echo \"\"
-            echo \"=== Direct Claude CLI Test (full output) ===\"
-            timeout 30 docker compose exec -T discord-bot bash -c \"claude -p test --output-format text 2>&1\" 2>&1 || echo \"TIMED_OUT_OR_FAILED exit=\$?\"
+            echo \"=== Test 3: Check project .claude dir permissions ===\"
+            docker compose exec -T discord-bot ls -la /data/projects/Thummpy/dnd-context/source/.claude/ 2>&1 || echo \"NO .claude DIR\"
+            docker compose exec -T discord-bot bash -c \"touch /data/projects/Thummpy/dnd-context/source/.claude/test-write 2>&1 && echo WRITE_OK && rm -f /data/projects/Thummpy/dnd-context/source/.claude/test-write || echo WRITE_FAILED\" 2>&1 || true
 
             echo \"\"
             echo \"=== DONE ===\"
