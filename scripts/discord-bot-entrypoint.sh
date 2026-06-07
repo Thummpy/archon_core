@@ -39,11 +39,11 @@ umask 0022
 chmod 777 /data /data/threads /data/logs 2>/dev/null || true
 
 # One-time migration: link new thread to old session after 500-message threshold hit
-MIGRATION_FILE="/data/threads/1513270525223370954.json"
+MIGRATION_FILE="/data/threads/1513311497135325385.json"
 if [ ! -f "$MIGRATION_FILE" ]; then
   python3 -c "
 import json, time
-d = {'thread_id': 1513270525223370954, 'session_id': '6625e132-6394-42dd-8b83-4a099d9d5902', 'updated_at': time.time(), 'message_count': 0, 'messages': []}
+d = {'thread_id': 1513311497135325385, 'session_id': '6625e132-6394-42dd-8b83-4a099d9d5902', 'updated_at': time.time(), 'message_count': 0, 'messages': []}
 with open('$MIGRATION_FILE', 'w') as f:
     json.dump(d, f, indent=2)
 print('[discord-bot] Migrated session to new thread', file=__import__('sys').stderr)
