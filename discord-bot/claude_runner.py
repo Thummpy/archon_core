@@ -30,8 +30,9 @@ async def run_claude(
     """
     env = os.environ.copy()
     env["CLAUDE_CODE_OAUTH_TOKEN"] = config.CLAUDE_CODE_OAUTH_TOKEN
+    env["CLAUDE_CODE_AUTO_COMPACT_WINDOW"] = "600000"
 
-    base_cmd = ["claude", "-p", prompt, "--output-format", "text", "--model", "claude-opus-4-6"]
+    base_cmd = ["claude", "-p", prompt, "--output-format", "text", "--model", "claude-opus-4-6[1m]"]
 
     if session_id:
         if is_new_session:
