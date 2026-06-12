@@ -36,6 +36,6 @@ CHANNEL_MAP = {
     "dnd-context": "Thummpy/dnd-context/source",
 }
 
-ARCHIVE_THRESHOLD = 2000
+ARCHIVE_THRESHOLD = 4000
 # Claude subprocess timeout - increased to 300s to handle longer session operations
 CLAUDE_TIMEOUT_SECONDS = 300
