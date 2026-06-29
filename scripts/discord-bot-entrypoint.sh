@@ -33,7 +33,7 @@ if [ ! -f "$HOME/.claude.json" ]; then
 fi
 
 # Make Claude CLI session files readable by other containers sharing the volume
-umask 0022
+umask 0000
 
 # Fix shared directory permissions so archon container can also write thread files
 chmod 777 /data /data/threads /data/logs 2>/dev/null || true
