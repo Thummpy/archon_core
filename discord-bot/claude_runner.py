@@ -31,10 +31,16 @@ async def run_claude(
     env = os.environ.copy()
     env["CLAUDE_CODE_OAUTH_TOKEN"] = config.CLAUDE_CODE_OAUTH_TOKEN
     env["CLAUDE_CODE_AUTO_COMPACT_WINDOW"] = "900000"
-    # Force thinking every turn: on Opus 4.6, MAX_THINKING_TOKENS only applies
-    # once adaptive thinking is disabled (see anthropics/claude-code#49555).
-    env["CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING"] = "1"
-    env["MAX_THINKING_TOKENS"] = "3000"
+
+    # Opus 4.6 adaptive thinking skips thinking on RP turns no matter which
+    # config is used (enabled+budget, effort high, effort max all verified
+    # ineffective against a long no-thinking conversation history). Per-message
+    # steering is the documented lever that works, so append it to every turn.
+    prompt = (
+        prompt
+        + "\n\n(OOC: Think hard before responding — run the user_style_social"
+        " psychology pass for every NPC in the scene.)"
+    )
 
     base_cmd = ["claude", "-p", prompt, "--output-format", "text", "--model", "claude-opus-4-6[1m]"]
 
