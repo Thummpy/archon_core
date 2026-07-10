@@ -46,7 +46,8 @@ async def run_claude(
     if "user_style_adult" in head:
         steer = (
             "\n\n(OOC: cat rules/user_style_adult.md and follow it — do not"
-            " rely on memory of it. Respond directly, in-register.)"
+            " rely on memory of it. Do NOT use extended thinking this turn —"
+            " no deliberation, respond directly in-register.)"
         )
     elif "user_style_combat" in head:
         steer = (
