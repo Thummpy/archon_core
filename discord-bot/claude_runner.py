@@ -36,11 +36,31 @@ async def run_claude(
     # config is used (enabled+budget, effort high, effort max all verified
     # ineffective against a long no-thinking conversation history). Per-message
     # steering is the documented lever that works, so append it to every turn.
-    prompt = (
-        prompt
-        + "\n\n(OOC: Think hard before responding — run the user_style_social"
-        " psychology pass for every NPC in the scene.)"
-    )
+    # Steering is scene-style-aware: a {user_style_*.md} tag at the top of the
+    # post selects the register. Adult scenes get NO think-hard instruction —
+    # the psychology pass reads as clinical in that register, and without
+    # explicit steering the long RP history reliably suppresses thinking.
+    # The cat instruction forces a fresh read of the style file every time;
+    # verified the model otherwise ignores the tag and runs on stale memory.
+    head = prompt[:160].lower()
+    if "user_style_adult" in head:
+        steer = (
+            "\n\n(OOC: cat rules/user_style_adult.md and follow it — do not"
+            " rely on memory of it. Respond directly, in-register.)"
+        )
+    elif "user_style_combat" in head:
+        steer = (
+            "\n\n(OOC: cat rules/user_style_combat.md and follow it — do not"
+            " rely on memory of it. Think hard before responding — run the"
+            " tactical pass: every NPC fights to win.)"
+        )
+    else:
+        steer = (
+            "\n\n(OOC: cat rules/user_style_social.md and follow it — do not"
+            " rely on memory of it. Think hard before responding — run the"
+            " user_style_social psychology pass for every NPC in the scene.)"
+        )
+    prompt = prompt + steer
 
     base_cmd = ["claude", "-p", prompt, "--output-format", "text", "--model", "claude-opus-4-6[1m]"]
 
