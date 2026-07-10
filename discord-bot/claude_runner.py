@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 import os
 import time
@@ -6,6 +7,93 @@ import time
 import config
 
 logger = logging.getLogger("discord-bot.claude")
+
+# Opus 4.6 adaptive thinking ignores every config lever (enabled+budget,
+# effort high/max) against a long no-thinking RP history — per-message
+# steering is the only thing that works. The OOC line is stamped on every
+# turn, matched to the session's current style mode. Adult gets an explicit
+# thinking-OFF line (omission alone risks thinking-history momentum).
+#
+# Style file content is injected directly into the prompt (deterministic)
+# instead of instructing the model to cat it (verified: the model skips the
+# read and runs on stale memory). Injection happens ONLY on turns that
+# declare a style tag, wrapped in sentinels so /strip-session can reclaim
+# the space later. The declared mode latches per session until the next
+# declaration, so untagged turns mid-scene keep the current register.
+STYLE_MODES = ("adult", "combat", "social")
+
+OOC_LINES = {
+    "adult": (
+        "\n\n(OOC: Do NOT use extended thinking this turn — no deliberation,"
+        " respond directly in-register.)"
+    ),
+    "combat": (
+        "\n\n(OOC: Think hard before responding — run the tactical pass:"
+        " every NPC fights to win.)"
+    ),
+    "social": (
+        "\n\n(OOC: Think hard before responding — run the user_style_social"
+        " psychology pass for every NPC in the scene.)"
+    ),
+}
+
+_MODE_STATE_PATH = os.path.join(config.DATA_DIR, "style_modes.json")
+
+
+def _detect_style_declaration(prompt: str) -> str | None:
+    head = prompt[:160].lower()
+    for mode in STYLE_MODES:
+        if f"user_style_{mode}" in head:
+            return mode
+    return None
+
+
+def _load_modes() -> dict:
+    try:
+        with open(_MODE_STATE_PATH) as f:
+            return json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def _save_modes(modes: dict) -> None:
+    try:
+        with open(_MODE_STATE_PATH, "w") as f:
+            json.dump(modes, f, indent=2)
+    except OSError as exc:
+        logger.warning("Could not persist style mode state: %s", exc)
+
+
+def _apply_style_steering(prompt: str, project_dir: str | None, session_id: str | None) -> str:
+    declared = _detect_style_declaration(prompt)
+
+    if session_id:
+        modes = _load_modes()
+        if declared:
+            modes[session_id] = declared
+            _save_modes(modes)
+        mode = modes.get(session_id, "social")
+    else:
+        mode = declared or "social"
+
+    if declared and project_dir:
+        style_path = os.path.join(project_dir, "rules", f"user_style_{declared}.md")
+        try:
+            with open(style_path) as f:
+                content = f.read().strip()
+            prompt += (
+                f"\n\n{{style_injection: user_style_{declared}.md}}\n"
+                f"{content}\n"
+                "{/style_injection}"
+            )
+            logger.info(
+                "Injected style file user_style_%s.md (%d chars)", declared, len(content)
+            )
+        except OSError as exc:
+            logger.warning("Could not read style file %s: %s", style_path, exc)
+
+    logger.info("Style mode=%s declared=%s", mode, declared or "(none)")
+    return prompt + OOC_LINES[mode]
 
 
 async def run_claude(
@@ -32,36 +120,7 @@ async def run_claude(
     env["CLAUDE_CODE_OAUTH_TOKEN"] = config.CLAUDE_CODE_OAUTH_TOKEN
     env["CLAUDE_CODE_AUTO_COMPACT_WINDOW"] = "900000"
 
-    # Opus 4.6 adaptive thinking skips thinking on RP turns no matter which
-    # config is used (enabled+budget, effort high, effort max all verified
-    # ineffective against a long no-thinking conversation history). Per-message
-    # steering is the documented lever that works, so append it to every turn.
-    # Steering is scene-style-aware: a {user_style_*.md} tag at the top of the
-    # post selects the register. Adult scenes get NO think-hard instruction —
-    # the psychology pass reads as clinical in that register, and without
-    # explicit steering the long RP history reliably suppresses thinking.
-    # The cat instruction forces a fresh read of the style file every time;
-    # verified the model otherwise ignores the tag and runs on stale memory.
-    head = prompt[:160].lower()
-    if "user_style_adult" in head:
-        steer = (
-            "\n\n(OOC: cat rules/user_style_adult.md and follow it — do not"
-            " rely on memory of it. Do NOT use extended thinking this turn —"
-            " no deliberation, respond directly in-register.)"
-        )
-    elif "user_style_combat" in head:
-        steer = (
-            "\n\n(OOC: cat rules/user_style_combat.md and follow it — do not"
-            " rely on memory of it. Think hard before responding — run the"
-            " tactical pass: every NPC fights to win.)"
-        )
-    else:
-        steer = (
-            "\n\n(OOC: cat rules/user_style_social.md and follow it — do not"
-            " rely on memory of it. Think hard before responding — run the"
-            " user_style_social psychology pass for every NPC in the scene.)"
-        )
-    prompt = prompt + steer
+    prompt = _apply_style_steering(prompt, project_dir, session_id)
 
     base_cmd = ["claude", "-p", prompt, "--output-format", "text", "--model", "claude-opus-4-6[1m]"]
 
