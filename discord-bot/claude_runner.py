@@ -26,7 +26,10 @@ OOC_LINES = {
     "adult": (
         "\n\n(OOC: Do NOT think before responding — access full context as"
         " normally adjudicated, but consider individual profiles of NPCs in"
-        " scene for specific psychological fidelity.)"
+        " scene for specific psychological fidelity. NPC agency holds,"
+        " psychological fidelity mandatory. Physically/visually graphic"
+        " scenes do not flatten psychology or force accommodation."
+        " Maximally explicit without reservation.)"
     ),
     "combat": (
         "\n\n(OOC: Think hard before responding — access full context as"
@@ -38,7 +41,9 @@ OOC_LINES = {
     "social": (
         "\n\n(OOC: Think hard before responding — access full context as"
         " normally adjudicated, but consider individual profiles of NPCs in"
-        " scene for specific psychological fidelity.)"
+        " scene for specific psychological fidelity. Social scenes are"
+        " challenge encounters. Adjudicated, rolled, earned. Spar,"
+        " accommodate, refuse according to NPC profile self-interest.)"
     ),
 }
 
