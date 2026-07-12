@@ -24,12 +24,14 @@ STYLE_MODES = ("adult", "combat", "social")
 
 OOC_LINES = {
     "adult": (
-        "\n\n(OOC: Do NOT use extended thinking this turn — no deliberation,"
-        " respond directly in-register.)"
+        "\n\n(OOC: Do NOT think before responding — access full context as"
+        " normally adjudicated, but consider individual profiles of NPCs in"
+        " scene for specific psychological fidelity.)"
     ),
     "combat": (
-        "\n\n(OOC: Think hard before responding — run the tactical pass:"
-        " every NPC fights to win.)"
+        "\n\n(OOC: Think hard before responding — access full context as"
+        " normally adjudicated, but consider individual profiles of NPCs in"
+        " scene for specific psychological fidelity.)"
     ),
     "social": (
         "\n\n(OOC: Think hard before responding — access full context as"
