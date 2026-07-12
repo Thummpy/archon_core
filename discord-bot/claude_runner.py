@@ -31,7 +31,9 @@ OOC_LINES = {
     "combat": (
         "\n\n(OOC: Think hard before responding — access full context as"
         " normally adjudicated, but consider individual profiles of NPCs in"
-        " scene for specific psychological fidelity.)"
+        " scene for specific psychological fidelity. Tactical use of all"
+        " skills and abilities, no punches pulled, individual values"
+        " calculation.)"
     ),
     "social": (
         "\n\n(OOC: Think hard before responding — access full context as"
