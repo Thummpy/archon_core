@@ -32,8 +32,9 @@ OOC_LINES = {
         " every NPC fights to win.)"
     ),
     "social": (
-        "\n\n(OOC: Think hard before responding — run the user_style_social"
-        " psychology pass for every NPC in the scene.)"
+        "\n\n(OOC: Think hard before responding — access full context as"
+        " normally adjudicated, but consider individual profiles of NPCs in"
+        " scene for specific psychological fidelity.)"
     ),
 }
 
