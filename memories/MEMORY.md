@@ -1,0 +1,42 @@
+- [thummpy-profile](user_thummpy.md) — Solo dev/DM, new to Archon, runs D&D campaign in Claude.ai
+- [no-premature-implementation](feedback_no_premature_implementation.md) — "Can you write X?" = feasibility question, not a build request
+- [dnd-context-pivot](project_dnd_context_pivot.md) — Major restructure: Claude Code becomes game engine, Archon replaces old .claude/ dev harness
+- [dnd-viewer](project_dnd_viewer.md) — New web UI replacing Discord as game frontend; issues #1-9 = roadmap; explicit session load only
+- [model-preferences](feedback_model_preferences.md) — Opus 4.6 for planning/review, Sonnet 4.5 for implementation. Hates 4.7/S4.6 overreach.
+- [verified-model-ids](reference_model_ids.md) — Tested model ID strings for Archon workflows (pinned versions)
+- [no-overreach](feedback_no_overreach.md) — Don't extrapolate to bulk changes when user asks to save knowledge
+- [no-temp-in-persistent](feedback_no_temp_in_persistent.md) — Don't put migration/temporary context in persistent configs
+- [session-persistence](reference_session_persistence.md) — .claude/ is volume-mounted, --restore works on CLI but not in Archon (SDK-based)
+- [archon-visibility](feedback_archon_visibility.md) — No file tree in Archon chat; SHOW state (diffs, file listings) before asking user to decide
+- [stack-sequential-prs](feedback_stack_sequential_prs.md) — Rebase downstream PRs before each merge; don't let user hit predictable conflicts
+- [gcp-project](reference_gcp_project.md) — GCP project ID (dev-services-497603), secret names for archon-chris instance
+- [discord-server](reference_discord_server.md) — Discord server ID, channel mapping for D&D game runtime bot
+- [archon-data-location](project_archon_data_location.md) — .archon/ workflows must NOT live in archon_core repo; future separate repo
+- [no-unauthorized-actions](feedback_no_cross_repo_changes.md) — NEVER act beyond what was explicitly asked — no cross-repo edits, no unsolicited reverts
+- [no-blocking-loops](feedback_no_blocking_loops.md) — Never use until/while loops to poll for deploys — they spin forever and lock the thread
+- [discord-shared-perms](project_discord_shared_perms.md) — Claude data dir shared between archon+discord-bot; umask 0022, chmod 777 on deploy
+- [no-approval-prompts](feedback_no_approval_prompts.md) — Archon can't propagate permission prompts; never ask user to approve, find workarounds
+- [orchestrator-chains](feedback_orchestrator_chains.md) — Orchestrator runs issue chains itself: invoke per-issue, review PR, continue; NO in-workflow review gates
+- [no-auto-merge](feedback_no_auto_merge.md) — Workflows must NEVER merge PRs; user reviews all PRs before merge
+- [female-physical-detail](feedback_female_physical_detail.md) — Female NPCs get richer physical/anatomical/sexual detail than males
+- [archon-variable-limits](reference_archon_variable_limits.md) — $nodeId.output.field only works in prompt nodes, fails in bash/when
+- [distiller-output-contract](feedback_distiller_output.md) — Distiller outputs ONE episode JSON per session in campaign subfolder, never modifies existing files
+- [no-unauthorized-builds](feedback_no_unauthorized_builds.md) — Questions are questions, not build requests — NEVER build/create without explicit instruction
+- [context-mgmt-arch](project_context_management_architecture.md) — Pre-resume strip, Bash for ephemeral reads (styles/DM), Read for persistent loads (profiles), combat temp files
+- [concise-issues](feedback_concise_issues.md) — GH issues: 1-2 sentences max, no tables/manuals/examples
+- [rewind-operation](reference_rewind_operation.md) — "rewind" = truncate game session JSONL at quoted user post; search tail only; chmod 666 after
+- [no-guessing-on-cutoff](feedback_no_guessing_on_cutoff.md) — Cut-off/ambiguous messages get a clarifying question, never guessed action
+- [dm-design-rules](feedback_dm_design_rules.md) — Campaign-agnostic: immutable profiles beat session drift, no minute timers, world pushes, owner-relative inventory, meta-fit rewards
+- [context-overflow-subagents](feedback_context_overflow_subagents.md) — Huge-file chunk studies: delegate spans to subagents, never read chunks into main context
+- [banned-fragment-pattern](feedback_banned_fragment_pattern.md) — BANNED: verb-less fragment stacks ("The X. The Y.") & "the particular X" — narrate with verbs
+- [archon-repo-resets](reference_archon_repo_resets.md) — Archon sync hard-resets source repos to origin/main; commit edits promptly or lose them
+- [archon-run-resume](reference_archon_run_resume.md) — Failed runs hijack new same-workflow invocations (prompt discarded); cancel stale run in archon.db first
+- [banned-fragment-prose](feedback_banned_fragment_prose.md) — Fragment piles + "the particular X of Y" banned in all game prose; never quote examples into context
+- [thinking-steering](reference_thinking_steering.md) — Opus 4.6 ignores all thinking config on long RP history; per-message OOC steering is the only working fix
+- [sex-capitulation](feedback_sex_capitulation.md) — DM green-lights all sexual advances (unlike combat/insults); NPCs must be able to reject or seduction has no fail case
+- [discuss-before-deploy](feedback_discuss_before_deploy.md) — No chain-deploys to live infra; design sign-off first, state revert path
+- [golden-record-protocol](feedback_golden_record_protocol.md) — Golden-record files (session JSONLs, campaign persistent files): show plan and get "go" before ANY edit, even inside a skill
+- [memory-permission](feedback_memory_permission.md) — Claude MUST obtain permission before adding or editing its own memories
+- [docs-in-same-pr](feedback_docs_in_same_pr.md) — Any PR editing an issue/ADR/config sweeps the doc tree in the same commit; sweep issues are a code smell
+- [no-subagents](feedback_no_subagents.md) — NEVER spawn subagents unless explicitly asked or required by workflow definition
+- [no-runaway-research](feedback_runaway_spending.md) — Use EXACT files user names, grep directly, no rabbit holes, no massive replies
