@@ -355,6 +355,7 @@ async def _handle_thread_message(
         project_dir = _project_dir_for_channel(channel_name)
 
         latest_prompt = message.content
+        timeout = 600 if "/event-design" in latest_prompt.lower() else None
 
         async with thread.typing():
             try:
@@ -363,11 +364,12 @@ async def _handle_thread_message(
                     project_dir=project_dir,
                     session_id=session_id,
                     is_new_session=is_new_session,
+                    timeout_seconds=timeout,
                 )
             except TimeoutError as exc:
                 logger.error("Claude timed out thread_id=%d error=%s", thread.id, exc)
                 await thread.send(
-                    f"⏱️ Claude timed out after {config.CLAUDE_TIMEOUT_SECONDS}s. "
+                    f"⏱️ Claude timed out after {timeout or config.CLAUDE_TIMEOUT_SECONDS}s. "
                     "Your message was too complex or the service is overloaded. "
                     "Try again with a shorter message."
                 )

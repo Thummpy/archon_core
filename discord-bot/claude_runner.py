@@ -111,6 +111,7 @@ async def run_claude(
     project_dir: str | None = None,
     session_id: str | None = None,
     is_new_session: bool = False,
+    timeout_seconds: int | None = None,
 ) -> dict:
     """Run Claude CLI and return structured result with text.
 
@@ -157,9 +158,10 @@ async def run_claude(
             env=env,
             cwd=project_dir,
         )
+        effective_timeout = timeout_seconds or config.CLAUDE_TIMEOUT_SECONDS
         stdout, stderr = await asyncio.wait_for(
             proc.communicate(),
-            timeout=config.CLAUDE_TIMEOUT_SECONDS,
+            timeout=effective_timeout,
         )
     except FileNotFoundError:
         logger.error("Claude CLI binary not found - is it installed?")
@@ -183,7 +185,7 @@ async def run_claude(
         elapsed = time.monotonic() - start
         logger.error("Claude subprocess timed out elapsed=%.1fs", elapsed)
         raise TimeoutError(
-            f"Claude did not respond within {config.CLAUDE_TIMEOUT_SECONDS}s"
+            f"Claude did not respond within {effective_timeout}s"
         )
 
     elapsed = time.monotonic() - start
