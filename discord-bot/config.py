@@ -37,5 +37,5 @@ CHANNEL_MAP = {
 }
 
 ARCHIVE_THRESHOLD = 4000
-# Claude subprocess timeout - increased to 300s to handle longer session operations
-CLAUDE_TIMEOUT_SECONDS = 300
+# Claude subprocess timeout - 600s to handle event-design and other heavy operations
+CLAUDE_TIMEOUT_SECONDS = 600
