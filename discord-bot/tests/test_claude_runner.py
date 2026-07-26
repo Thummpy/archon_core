@@ -17,7 +17,7 @@ from claude_runner import run_claude
 async def test_run_claude_new_session_command(mock_exec):
     """New session should use --session-id flag."""
     mock_proc = AsyncMock()
-    json_response = json.dumps([{"type": "text", "text": "response"}])
+    json_response = json.dumps({"type": "result", "result": "response", "is_error": False})
     mock_proc.communicate.return_value = (json_response.encode(), b"")
     mock_proc.returncode = 0
     mock_exec.return_value = mock_proc
@@ -42,7 +42,7 @@ async def test_run_claude_new_session_command(mock_exec):
 async def test_run_claude_resume_session_command(mock_exec):
     """Resume session should use --resume flag."""
     mock_proc = AsyncMock()
-    json_response = json.dumps([{"type": "text", "text": "response"}])
+    json_response = json.dumps({"type": "result", "result": "response", "is_error": False})
     mock_proc.communicate.return_value = (json_response.encode(), b"")
     mock_proc.returncode = 0
     mock_exec.return_value = mock_proc
@@ -65,7 +65,7 @@ async def test_run_claude_resume_session_command(mock_exec):
 async def test_run_claude_no_session_command(mock_exec):
     """No session should use neither --session-id nor --resume."""
     mock_proc = AsyncMock()
-    json_response = json.dumps([{"type": "text", "text": "response"}])
+    json_response = json.dumps({"type": "result", "result": "response", "is_error": False})
     mock_proc.communicate.return_value = (json_response.encode(), b"")
     mock_proc.returncode = 0
     mock_exec.return_value = mock_proc
@@ -85,7 +85,7 @@ async def test_run_claude_no_session_command(mock_exec):
 async def test_run_claude_invalid_state_is_new_without_session_id(mock_exec):
     """is_new_session=True with session_id=None should use one-off mode (current behavior)."""
     mock_proc = AsyncMock()
-    json_response = json.dumps([{"type": "text", "text": "response"}])
+    json_response = json.dumps({"type": "result", "result": "response", "is_error": False})
     mock_proc.communicate.return_value = (json_response.encode(), b"")
     mock_proc.returncode = 0
     mock_exec.return_value = mock_proc
@@ -105,7 +105,7 @@ async def test_run_claude_invalid_state_is_new_without_session_id(mock_exec):
 async def test_run_claude_with_project_dir(mock_exec):
     """Should pass project_dir as cwd to subprocess."""
     mock_proc = AsyncMock()
-    json_response = json.dumps([{"type": "text", "text": "response"}])
+    json_response = json.dumps({"type": "result", "result": "response", "is_error": False})
     mock_proc.communicate.return_value = (json_response.encode(), b"")
     mock_proc.returncode = 0
     mock_exec.return_value = mock_proc
@@ -168,9 +168,12 @@ async def test_run_claude_nonzero_exit_code(mock_exec):
 @pytest.mark.asyncio
 @patch('claude_runner.asyncio.create_subprocess_exec', new_callable=AsyncMock)
 async def test_run_claude_success_returns_text(mock_exec):
-    """Should return text parsed from JSON on success."""
+    """Should return text from result object format (actual CLI output)."""
     mock_proc = AsyncMock()
-    json_response = json.dumps([{"type": "text", "text": "Claude response text"}])
+    json_response = json.dumps({
+        "type": "result", "subtype": "success", "result": "Claude response text",
+        "session_id": "abc", "is_error": False,
+    })
     mock_proc.communicate.return_value = (json_response.encode(), b"")
     mock_proc.returncode = 0
     mock_exec.return_value = mock_proc
@@ -184,7 +187,7 @@ async def test_run_claude_success_returns_text(mock_exec):
 @pytest.mark.asyncio
 @patch('claude_runner.asyncio.create_subprocess_exec', new_callable=AsyncMock)
 async def test_run_claude_multi_block_response(mock_exec):
-    """Should concatenate all text blocks from multi-block response."""
+    """Should concatenate all text blocks from list-of-blocks format."""
     mock_proc = AsyncMock()
     json_response = json.dumps([
         {"type": "text", "text": "Rue hits the guard with a devastating blow..."},
@@ -227,7 +230,7 @@ async def test_run_claude_json_parse_error_fallback(mock_exec):
 async def test_run_claude_stderr_warning_on_success(mock_exec):
     """Should log warning if stderr present on success."""
     mock_proc = AsyncMock()
-    json_response = json.dumps([{"type": "text", "text": "response"}])
+    json_response = json.dumps({"type": "result", "result": "response", "is_error": False})
     mock_proc.communicate.return_value = (json_response.encode(), b"warning message")
     mock_proc.returncode = 0
     mock_exec.return_value = mock_proc
@@ -251,9 +254,9 @@ async def test_run_claude_os_error(mock_exec):
 @pytest.mark.asyncio
 @patch('claude_runner.asyncio.create_subprocess_exec', new_callable=AsyncMock)
 async def test_run_claude_json_wrong_structure_fallback(mock_exec):
-    """Should fall back to raw text when JSON is valid but not an array of blocks."""
+    """Should fall back to raw text when JSON is valid but neither result-object nor block-array."""
     mock_proc = AsyncMock()
-    json_response = json.dumps({"type": "text", "text": "unexpected object"})
+    json_response = json.dumps({"unexpected": "shape", "no_result_key": True})
     mock_proc.communicate.return_value = (json_response.encode(), b"")
     mock_proc.returncode = 0
     mock_exec.return_value = mock_proc
