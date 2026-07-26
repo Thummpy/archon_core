@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import AsyncMock, patch
 import asyncio
+import json
 import sys
 import os
 
@@ -160,9 +161,10 @@ async def test_run_claude_nonzero_exit_code(mock_exec):
 @pytest.mark.asyncio
 @patch('claude_runner.asyncio.create_subprocess_exec', new_callable=AsyncMock)
 async def test_run_claude_success_returns_text(mock_exec):
-    """Should return text on success."""
+    """Should return text parsed from JSON on success."""
     mock_proc = AsyncMock()
-    mock_proc.communicate.return_value = (b"Claude response text", b"")
+    json_response = json.dumps([{"type": "text", "text": "Claude response text"}])
+    mock_proc.communicate.return_value = (json_response.encode(), b"")
     mock_proc.returncode = 0
     mock_exec.return_value = mock_proc
 
@@ -174,10 +176,52 @@ async def test_run_claude_success_returns_text(mock_exec):
 
 @pytest.mark.asyncio
 @patch('claude_runner.asyncio.create_subprocess_exec', new_callable=AsyncMock)
+async def test_run_claude_multi_block_response(mock_exec):
+    """Should concatenate all text blocks from multi-block response."""
+    mock_proc = AsyncMock()
+    json_response = json.dumps([
+        {"type": "text", "text": "Rue hits the guard with a devastating blow..."},
+        {"type": "tool_use", "id": "tool_1", "name": "roll_dice", "input": {}},
+        {"type": "tool_result", "tool_use_id": "tool_1", "content": "18"},
+        {"type": "text", "text": "The guard staggers, then retaliates..."},
+    ])
+    mock_proc.communicate.return_value = (json_response.encode(), b"")
+    mock_proc.returncode = 0
+    mock_exec.return_value = mock_proc
+
+    result = await run_claude(prompt="hello")
+
+    assert "Rue hits the guard" in result["text"]
+    assert "The guard staggers" in result["text"]
+    assert result["text"] == (
+        "Rue hits the guard with a devastating blow..."
+        "\n\n"
+        "The guard staggers, then retaliates..."
+    )
+
+
+@pytest.mark.asyncio
+@patch('claude_runner.asyncio.create_subprocess_exec', new_callable=AsyncMock)
+async def test_run_claude_json_parse_error_fallback(mock_exec):
+    """Should fall back to raw text when JSON parsing fails."""
+    mock_proc = AsyncMock()
+    mock_proc.communicate.return_value = (b"not valid json", b"")
+    mock_proc.returncode = 0
+    mock_exec.return_value = mock_proc
+
+    result = await run_claude(prompt="hello")
+
+    assert result["text"] == "not valid json"
+    assert result["trace"] == []
+
+
+@pytest.mark.asyncio
+@patch('claude_runner.asyncio.create_subprocess_exec', new_callable=AsyncMock)
 async def test_run_claude_stderr_warning_on_success(mock_exec):
     """Should log warning if stderr present on success."""
     mock_proc = AsyncMock()
-    mock_proc.communicate.return_value = (b"response", b"warning message")
+    json_response = json.dumps([{"type": "text", "text": "response"}])
+    mock_proc.communicate.return_value = (json_response.encode(), b"warning message")
     mock_proc.returncode = 0
     mock_exec.return_value = mock_proc
 

@@ -132,7 +132,7 @@ async def run_claude(
 
     prompt = _apply_style_steering(prompt, project_dir, session_id)
 
-    base_cmd = ["claude", "-p", prompt, "--output-format", "text", "--model", "claude-opus-4-6[1m]"]
+    base_cmd = ["claude", "-p", prompt, "--output-format", "json", "--model", "claude-opus-4-6[1m]"]
 
     if session_id:
         if is_new_session:
@@ -210,4 +210,13 @@ async def run_claude(
         logger.warning("Claude subprocess wrote to stderr (exit_code=0): %s", err_msg[:1000])
 
     raw = stdout.decode("utf-8", errors="replace").strip()
-    return {"text": raw, "trace": []}
+    try:
+        blocks = json.loads(raw)
+        text_parts = [
+            block["text"] for block in blocks if block.get("type") == "text"
+        ]
+        text = "\n\n".join(text_parts)
+    except (json.JSONDecodeError, KeyError, TypeError):
+        logger.warning("Failed to parse Claude JSON response, falling back to raw text")
+        text = raw
+    return {"text": text, "trace": []}
