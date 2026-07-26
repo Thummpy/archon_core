@@ -25,7 +25,7 @@ fi
 
 # Restore .claude.json from backup if missing (shared volume may lose it)
 if [ ! -f "$HOME/.claude.json" ]; then
-  BACKUP=$(ls -t "$HOME/.claude/backups/.claude.json.backup."* 2>/dev/null | head -1)
+  BACKUP=$(find "$HOME/.claude/backups" -maxdepth 1 -name '.claude.json.backup.*' -printf '%T@\t%p\n' 2>/dev/null | sort -rn | head -1 | cut -f2)
   if [ -n "$BACKUP" ]; then
     cp "$BACKUP" "$HOME/.claude.json"
     echo "[discord-bot] Restored .claude.json from backup" >&2
