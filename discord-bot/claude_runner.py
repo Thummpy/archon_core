@@ -161,6 +161,14 @@ async def run_claude(
             proc.communicate(),
             timeout=config.CLAUDE_TIMEOUT_SECONDS,
         )
+    except asyncio.TimeoutError:
+        proc.kill()
+        await proc.wait()
+        elapsed = time.monotonic() - start
+        logger.error("Claude subprocess timed out elapsed=%.1fs", elapsed)
+        raise TimeoutError(
+            f"Claude did not respond within {config.CLAUDE_TIMEOUT_SECONDS}s"
+        )
     except FileNotFoundError:
         logger.error("Claude CLI binary not found - is it installed?")
         raise RuntimeError(
@@ -176,14 +184,6 @@ async def run_claude(
         raise RuntimeError(
             f"Could not spawn Claude CLI process (OS error: {exc.strerror or str(exc)}). "
             "Contact the bot admin - system resources may be exhausted."
-        )
-    except asyncio.TimeoutError:
-        proc.kill()
-        await proc.wait()
-        elapsed = time.monotonic() - start
-        logger.error("Claude subprocess timed out elapsed=%.1fs", elapsed)
-        raise TimeoutError(
-            f"Claude did not respond within {config.CLAUDE_TIMEOUT_SECONDS}s"
         )
 
     elapsed = time.monotonic() - start
