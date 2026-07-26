@@ -132,7 +132,7 @@ async def run_claude(
 
     prompt = _apply_style_steering(prompt, project_dir, session_id)
 
-    base_cmd = ["claude", "-p", prompt, "--output-format", "text", "--model", "claude-opus-4-6[1m]"]
+    base_cmd = ["claude", "-p", prompt, "--output-format", "json", "--model", "claude-opus-4-6[1m]"]
 
     if session_id:
         if is_new_session:
@@ -161,6 +161,14 @@ async def run_claude(
             proc.communicate(),
             timeout=config.CLAUDE_TIMEOUT_SECONDS,
         )
+    except asyncio.TimeoutError:
+        proc.kill()
+        await proc.wait()
+        elapsed = time.monotonic() - start
+        logger.error("Claude subprocess timed out elapsed=%.1fs", elapsed)
+        raise TimeoutError(
+            f"Claude did not respond within {config.CLAUDE_TIMEOUT_SECONDS}s"
+        )
     except FileNotFoundError:
         logger.error("Claude CLI binary not found - is it installed?")
         raise RuntimeError(
@@ -176,14 +184,6 @@ async def run_claude(
         raise RuntimeError(
             f"Could not spawn Claude CLI process (OS error: {exc.strerror or str(exc)}). "
             "Contact the bot admin - system resources may be exhausted."
-        )
-    except asyncio.TimeoutError:
-        proc.kill()
-        await proc.wait()
-        elapsed = time.monotonic() - start
-        logger.error("Claude subprocess timed out elapsed=%.1fs", elapsed)
-        raise TimeoutError(
-            f"Claude did not respond within {config.CLAUDE_TIMEOUT_SECONDS}s"
         )
 
     elapsed = time.monotonic() - start
@@ -210,4 +210,15 @@ async def run_claude(
         logger.warning("Claude subprocess wrote to stderr (exit_code=0): %s", err_msg[:1000])
 
     raw = stdout.decode("utf-8", errors="replace").strip()
-    return {"text": raw, "trace": []}
+    try:
+        blocks = json.loads(raw)
+        text_parts = [
+            block["text"] for block in blocks if block.get("type") == "text"
+        ]
+        text = "\n\n".join(text_parts)
+        if not text and blocks:
+            logger.warning("Claude response contained %d blocks but no text blocks", len(blocks))
+    except (json.JSONDecodeError, KeyError, TypeError, AttributeError) as exc:
+        logger.warning("Failed to parse Claude JSON response (%s), falling back to raw text: %.200s", exc, raw)
+        text = raw
+    return {"text": text, "trace": []}
