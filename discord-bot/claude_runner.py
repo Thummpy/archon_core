@@ -216,7 +216,9 @@ async def run_claude(
             block["text"] for block in blocks if block.get("type") == "text"
         ]
         text = "\n\n".join(text_parts)
-    except (json.JSONDecodeError, KeyError, TypeError):
-        logger.warning("Failed to parse Claude JSON response, falling back to raw text")
+        if not text and blocks:
+            logger.warning("Claude response contained %d blocks but no text blocks", len(blocks))
+    except (json.JSONDecodeError, KeyError, TypeError, AttributeError) as exc:
+        logger.warning("Failed to parse Claude JSON response (%s), falling back to raw text: %.200s", exc, raw)
         text = raw
     return {"text": text, "trace": []}
