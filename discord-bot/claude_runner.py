@@ -214,6 +214,8 @@ async def run_claude(
         data = json.loads(raw)
         if isinstance(data, dict) and "result" in data:
             text = data["result"]
+            if data.get("is_error"):
+                logger.warning("Claude returned is_error=True: %.200s", text)
         elif isinstance(data, list):
             text_parts = [
                 block["text"] for block in data if block.get("type") == "text"

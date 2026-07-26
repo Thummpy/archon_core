@@ -266,6 +266,24 @@ async def test_run_claude_json_wrong_structure_fallback(mock_exec):
 
 @pytest.mark.asyncio
 @patch('claude_runner.asyncio.create_subprocess_exec', new_callable=AsyncMock)
+async def test_run_claude_is_error_flag_logs_warning(mock_exec):
+    """Should log warning when Claude returns is_error=True but still return the text."""
+    mock_proc = AsyncMock()
+    json_response = json.dumps({"type": "result", "result": "Error: context window exceeded", "is_error": True})
+    mock_proc.communicate.return_value = (json_response.encode(), b"")
+    mock_proc.returncode = 0
+    mock_exec.return_value = mock_proc
+
+    import logging
+    with patch('claude_runner.logger') as mock_logger:
+        result = await run_claude(prompt="hello")
+
+    assert result["text"] == "Error: context window exceeded"
+    mock_logger.warning.assert_any_call("Claude returned is_error=True: %.200s", "Error: context window exceeded")
+
+
+@pytest.mark.asyncio
+@patch('claude_runner.asyncio.create_subprocess_exec', new_callable=AsyncMock)
 async def test_run_claude_no_text_blocks(mock_exec):
     """Should return empty string when response has no text blocks."""
     mock_proc = AsyncMock()
