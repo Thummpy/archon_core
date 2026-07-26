@@ -211,13 +211,19 @@ async def run_claude(
 
     raw = stdout.decode("utf-8", errors="replace").strip()
     try:
-        blocks = json.loads(raw)
-        text_parts = [
-            block["text"] for block in blocks if block.get("type") == "text"
-        ]
-        text = "\n\n".join(text_parts)
-        if not text and blocks:
-            logger.warning("Claude response contained %d blocks but no text blocks", len(blocks))
+        data = json.loads(raw)
+        if isinstance(data, dict) and "result" in data:
+            text = data["result"]
+        elif isinstance(data, list):
+            text_parts = [
+                block["text"] for block in data if block.get("type") == "text"
+            ]
+            text = "\n\n".join(text_parts)
+            if not text and data:
+                logger.warning("Claude response contained %d blocks but no text blocks", len(data))
+        else:
+            logger.warning("Parsed JSON has unexpected shape, falling back to raw text: %.200s", raw)
+            text = raw
     except (json.JSONDecodeError, KeyError, TypeError, AttributeError) as exc:
         logger.warning("Failed to parse Claude JSON response (%s), falling back to raw text: %.200s", exc, raw)
         text = raw
