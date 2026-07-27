@@ -132,7 +132,7 @@ async def run_claude(
 
     prompt = _apply_style_steering(prompt, project_dir, session_id)
 
-    base_cmd = ["claude", "-p", prompt, "--output-format", "json", "--model", "claude-opus-4-6[1m]"]
+    base_cmd = ["claude", "-p", prompt, "--output-format", "json", "--model", "claude-opus-5"]
 
     if session_id:
         if is_new_session:
