@@ -1,5 +1,4 @@
 import logging
-import re
 
 logger = logging.getLogger("discord-bot.models")
 
@@ -29,7 +28,7 @@ def resolve_model(model: str) -> str:
         return resolved
 
     # Check if it's a bare alias (after stripping thinking suffix)
-    model_without_suffix = re.sub(r'\[.*\]$', '', key)
+    model_without_suffix = key.split("[", 1)[0]
     if model_without_suffix in _BARE_ALIASES:
         logger.warning(
             "Bare alias model=%s detected. This resolves via SDK and may drift. "
