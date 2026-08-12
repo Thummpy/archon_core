@@ -155,6 +155,9 @@ Claude Code.
 | `DISCORD_BOT_TOKEN` | (required) | Bot authentication token |
 | `DISCORD_SERVER_ID` | `1509185927505907715` | Target Discord server |
 | `CLAUDE_CODE_OAUTH_TOKEN` | (required) | Anthropic OAuth token for Claude Code |
+| `CLAUDE_MODEL` | `large` | Model tier or raw model ID for Claude |
+
+`CLAUDE_MODEL` accepts tier names (`large` for Opus, `medium` for Sonnet) or raw model IDs (e.g., `claude-opus-4-6[1m]`). Tier names resolve to pinned model IDs defined in `discord-bot/model_tiers.py`. Bare aliases like `opus` or `sonnet` are discouraged — they resolve via SDK and may drift between releases.
 
 Channel-to-project mapping is defined in `discord-bot/config.py`:
 

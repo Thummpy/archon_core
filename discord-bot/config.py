@@ -31,7 +31,7 @@ except ValueError as exc:
     sys.exit(1)
 DATA_DIR = os.environ.get("DATA_DIR", "/data")
 COMMANDS_DIR = os.environ.get("COMMANDS_DIR", "/.claude/commands")
-CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL", "large")
+CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL", "").strip() or "large"
 
 CHANNEL_MAP = {
     "dnd-context": "Thummpy/dnd-context/source",

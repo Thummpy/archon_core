@@ -22,13 +22,14 @@ def resolve_model(model: str) -> str:
     Returns the resolved model ID string.
     """
     # Check if it's a tier name
-    if model in MODEL_TIERS:
-        resolved = MODEL_TIERS[model]
-        logger.info("Resolved model tier=%s to model=%s", model, resolved)
+    key = model.strip().lower()
+    if key in MODEL_TIERS:
+        resolved = MODEL_TIERS[key]
+        logger.debug("Resolved model tier=%s to model=%s", model, resolved)
         return resolved
 
     # Check if it's a bare alias (after stripping thinking suffix)
-    model_without_suffix = re.sub(r'\[.*\]$', '', model).lower()
+    model_without_suffix = re.sub(r'\[.*\]$', '', key)
     if model_without_suffix in _BARE_ALIASES:
         logger.warning(
             "Bare alias model=%s detected. This resolves via SDK and may drift. "

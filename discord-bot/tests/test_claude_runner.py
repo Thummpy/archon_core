@@ -284,6 +284,25 @@ async def test_run_claude_is_error_flag_logs_warning(mock_exec):
 
 @pytest.mark.asyncio
 @patch('claude_runner.asyncio.create_subprocess_exec', new_callable=AsyncMock)
+@patch('claude_runner.config.CLAUDE_MODEL', 'large')
+async def test_run_claude_uses_resolved_model(mock_exec):
+    """Should pass resolved model tier to --model flag."""
+    mock_proc = AsyncMock()
+    json_response = json.dumps({"type": "result", "result": "response", "is_error": False})
+    mock_proc.communicate.return_value = (json_response.encode(), b"")
+    mock_proc.returncode = 0
+    mock_exec.return_value = mock_proc
+
+    await run_claude(prompt="hello")
+
+    args, kwargs = mock_exec.call_args
+    cmd = args
+    model_idx = cmd.index("--model")
+    assert cmd[model_idx + 1] == "claude-opus-5"
+
+
+@pytest.mark.asyncio
+@patch('claude_runner.asyncio.create_subprocess_exec', new_callable=AsyncMock)
 async def test_run_claude_no_text_blocks(mock_exec):
     """Should return empty string when response has no text blocks."""
     mock_proc = AsyncMock()

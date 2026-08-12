@@ -70,6 +70,13 @@ def test_unknown_string_passthrough(caplog):
     assert "Bare alias" not in caplog.text
 
 
+def test_resolve_tier_case_insensitive():
+    """Tier lookup is case-insensitive — 'Large', 'LARGE' resolve like 'large'."""
+    assert resolve_model("Large") == "claude-opus-5"
+    assert resolve_model("LARGE") == "claude-opus-5"
+    assert resolve_model("MEDIUM") == "claude-sonnet-5"
+
+
 def test_tier_names_are_stable():
     """MODEL_TIERS contains exactly the expected tier names."""
     assert set(MODEL_TIERS.keys()) == {"large", "medium"}
