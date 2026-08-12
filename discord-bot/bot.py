@@ -12,6 +12,7 @@ import discord
 import claude_runner
 import config
 import thread_manager
+from model_tiers import resolve_model
 
 LOG_FORMAT = "%(asctime)s %(name)s %(levelname)s %(message)s"
 logging.basicConfig(level=logging.INFO, format=LOG_FORMAT, stream=sys.stderr)
@@ -182,6 +183,7 @@ def _split_response(text: str, limit: int = 2000) -> list[str]:
 @bot.event
 async def on_ready() -> None:
     logger.info("Bot connected user=%s server_count=%d", bot.user, len(bot.guilds))
+    logger.info("Model config: CLAUDE_MODEL=%s resolved=%s", config.CLAUDE_MODEL, resolve_model(config.CLAUDE_MODEL))
     _touch_health_sentinel()
 
 

@@ -72,6 +72,7 @@ services:
       DISCORD_BOT_TOKEN: "${DISCORD_BOT_TOKEN:-}"
       DISCORD_SERVER_ID: "${DISCORD_SERVER_ID:-1509185927505907715}"
       CLAUDE_CODE_OAUTH_TOKEN: "${CLAUDE_CODE_OAUTH_TOKEN}"
+      CLAUDE_MODEL: "${CLAUDE_MODEL:-large}"
       ARCHON_DOCKER: "true"
     volumes:
       - ./discord-bot:/app:ro

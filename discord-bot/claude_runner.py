@@ -5,6 +5,7 @@ import os
 import time
 
 import config
+from model_tiers import resolve_model
 
 logger = logging.getLogger("discord-bot.claude")
 
@@ -132,7 +133,8 @@ async def run_claude(
 
     prompt = _apply_style_steering(prompt, project_dir, session_id)
 
-    base_cmd = ["claude", "-p", prompt, "--output-format", "json", "--model", "claude-opus-4-6[1m]"]
+    model = resolve_model(config.CLAUDE_MODEL)
+    base_cmd = ["claude", "-p", prompt, "--output-format", "json", "--model", model]
 
     if session_id:
         if is_new_session:
