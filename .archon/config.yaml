@@ -1,1 +1,0 @@
-{assistants: {claude: {model: "claude-opus-4-6[1m]",settingSources: []},codex: {webSearchMode: cached},pi: {}},defaultAssistant: claude}
