@@ -94,6 +94,8 @@ All scripts live in `scripts/` and are idempotent — safe to re-run.
 | [UPGRADING.md](docs/UPGRADING.md) | Version bump procedure with backup safety |
 | [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common errors and fixes |
 | [TERRAFORM-SETUP.md](docs/TERRAFORM-SETUP.md) | Terraform installation and GCP auth |
+| [DISCORD-BOT-SETUP.md](docs/DISCORD-BOT-SETUP.md) | Discord bot token setup, permissions, channel configuration |
+| [GAME-RUNTIME-SPEC.md](docs/GAME-RUNTIME-SPEC.md) | Game runtime system technical spec — blueprint for standalone extraction |
 | [GCP-DEPLOYMENT.md](docs/GCP-DEPLOYMENT.md) | OAuth, Terraform deployment, GitHub Actions, operations |
 
 ## Developing This Repo
