@@ -69,3 +69,7 @@ Local-only deployment. Each developer runs their own Archon instance on their ma
 - **Volume mounts:** Custom workflow and command directories mounted read-write so Archon's builder UI can create new definitions. Configuration mounted read-write; wizard-written changes are reviewed via `git diff` before committing. The git repo is the source of truth — UI-created workflows must be committed to persist across clones.
 - **Host filesystem:** `~/archon-data/` is user-owned on the host. Standard filesystem permissions apply. No special encryption at rest beyond OS-level disk encryption.
 - **Secrets management:** `.env` is the only secrets file. `.env.example` provides the template without values. No secrets in Docker Compose, Dockerfiles, or workflow YAML files.
+
+## See Also
+
+- [GAME-RUNTIME-SPEC.md](GAME-RUNTIME-SPEC.md) — Technical specification for the Discord bot game runtime system

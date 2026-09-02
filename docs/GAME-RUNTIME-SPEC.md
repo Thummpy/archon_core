@@ -540,7 +540,7 @@ These seven principles are baked into the system via `.claude/CLAUDE.md`:
 
 ### Thinking Steering
 
-**Source**: `claude_runner.py:11-48`, `23-48`
+**Source**: `claude_runner.py:11-48`
 
 **OOC lines defined as constants** in `OOC_LINES` dict:
 
